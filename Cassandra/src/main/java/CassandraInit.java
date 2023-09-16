@@ -3,18 +3,21 @@ import java.io.FileNotFoundException;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Scanner;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
 import table.Tables;
 import read.OrderStatusTxn;
+import utils.Transaction;
+import utils.TransactionBuilder;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 public class CassandraInit {
     private static final String DISTRICT_TABLE_BUILT_SUCC_MESSAGE = "District table built";
@@ -56,8 +59,16 @@ public class CassandraInit {
             session.close();
             session = cluster.connect();
             OrderStatusTxn txn = new OrderStatusTxn("1", "1", "1");
+            // BufferedReader reader = new BufferedReader(new FileReader("./0.txt"));
+            // TransactionBuilder builder = new TransactionBuilder();
+            // String line;
+            // while ((line = reader.readLine()) != null) {
+            //     // process the line
+            //     Transaction t = builder.build(reader, line);
+            //     System.out.println(t.getClass().getName());
+            // }
             txn.run(session);
-            
+
             // clearDB(session);
             session.close();
             cluster.close();
