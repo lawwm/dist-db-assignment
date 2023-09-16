@@ -1,0 +1,11 @@
+# Gradle build files
+Cassandra/.gradle/
+Cassandra/build/
+src/main/resources/docs/
+
+# IDEA files
+Cassandra/.idea/
+Cassandra/out/
+Cassandra/*.iml
+
+Cassandra/bin
