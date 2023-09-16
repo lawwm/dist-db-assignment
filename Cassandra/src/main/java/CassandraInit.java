@@ -14,13 +14,27 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 
 public class CassandraInit {
+    private static final String DISTRICT_TABLE_BUILT_SUCC_MESSAGE = "District table built";
     private static final String KEYSPACE_REF = "CS4224H";
     private static final String DATAFILE_PATH = "./project_files/data_files";
+
+    private static final String INVALID_ARGUMENTS_ERROR_MESSAGE = "Arguments Invalid. Enter: Host Port";
+    private static final String DISTRICT_FILE_NOT_FOUND_ERROR_MESSAGE = "District file not found";
+    private static final String WAREHOUSE_FILE_NOT_FOUND_ERROR_MESSAGE = "Warehouse file not found";
+    private static final String CUSTOMER_FILE_NOT_FOUND_ERROR_MESSAGE = "Customer file not found";
+    private static final String INVALID_DATE_FORMAT_ERROR_MESSAGE = "Invalid Date format";
+    private static final String ITEMS_FILE_NOT_FOUND_ERROR_MESSAGE = "Items file not found";
+
+    private static final String SESSION_CONN_SUCC_MESSAGE = "Connected to session";
+    private static final String CLEARED_DB_SUCC_MESSAGE = "Cleared DB";
+    private static final String WAREHOUSE_TABLE_BUILT_SUCC_MESSAGE = "Warehouse table built";
+    private static final String CUSTOMER_TABLE_BUILT_SUCC_MESSAGE = "Customer table built";
+    private static final String ITEM_TABLE_BUILT_SUCC_MESSAGE = "Item table built";
 
     public static void main(String[] args) {
         boolean hasNecessaryArgs = args.length >= 2;
         if (!hasNecessaryArgs) {
-            System.out.println("Enter Arguments: Host Port");
+            System.out.println(INVALID_ARGUMENTS_ERROR_MESSAGE);
             return;
         }
         String host = args[0];
@@ -28,7 +42,7 @@ public class CassandraInit {
         System.out.println("Host: " + host + " Port: " + args[1]);
         Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
         Session session = cluster.connect();
-        System.out.println("Connected to session");
+        System.out.println(SESSION_CONN_SUCC_MESSAGE);
         createKeyspace(session);
         session = cluster.connect(KEYSPACE_REF);
         buildTables(session);
@@ -42,7 +56,7 @@ public class CassandraInit {
     private static void clearDB(Session session) {
         String clearQuery = "DROP KEYSPACE IF EXISTS " + KEYSPACE_REF + ";";
         session.execute(clearQuery);
-        System.out.println("Cleared DB");
+        System.out.println(CLEARED_DB_SUCC_MESSAGE);
     }
 
     private static void createKeyspace(Session session) {
@@ -97,9 +111,9 @@ public class CassandraInit {
                 session.execute(boundStatement);
             }
         } catch (FileNotFoundException e) {
-            System.out.println("Warehouse file not found");
+            System.out.println(WAREHOUSE_FILE_NOT_FOUND_ERROR_MESSAGE);
         }
-        System.out.println("Warehouse table built");
+        System.out.println(WAREHOUSE_TABLE_BUILT_SUCC_MESSAGE);
     }
 
     private static void buildDistrictTable(Session session) {
@@ -146,9 +160,9 @@ public class CassandraInit {
                 session.execute(boundStatement);
             }
         } catch (FileNotFoundException e) {
-            System.out.println("District file not found");
+            System.out.println(DISTRICT_FILE_NOT_FOUND_ERROR_MESSAGE);
         }
-        System.out.println("District table built");
+        System.out.println(DISTRICT_TABLE_BUILT_SUCC_MESSAGE);
     }
 
     private static void buildCustomerTable(Session session) {
@@ -217,11 +231,11 @@ public class CassandraInit {
                 session.execute(boundStatement);
             }
         } catch (FileNotFoundException e) {
-            System.out.println("Customer file not found or date parsing error");
+            System.out.println(CUSTOMER_FILE_NOT_FOUND_ERROR_MESSAGE);
         } catch (ParseException e) {
-            System.out.println("Invalid Date format");
+            System.out.println(INVALID_DATE_FORMAT_ERROR_MESSAGE);
         }
-        System.out.println("Customer table built");
+        System.out.println(CUSTOMER_TABLE_BUILT_SUCC_MESSAGE);
     }
 
     private static void buildItemsTable(Session session) {
@@ -250,8 +264,8 @@ public class CassandraInit {
                 session.execute(boundStatement);
             }
         } catch (FileNotFoundException e) {
-            System.out.println("Items file not found");
+            System.out.println(ITEMS_FILE_NOT_FOUND_ERROR_MESSAGE);
         }
-        System.out.println("Item table built");
+        System.out.println(ITEM_TABLE_BUILT_SUCC_MESSAGE);
     }
 }
