@@ -3,15 +3,21 @@ import java.io.FileNotFoundException;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Scanner;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.PreparedStatement;
-import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+
+import table.Tables;
+import read.OrderStatusTxn;
+import utils.Transaction;
+import utils.TransactionBuilder;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 public class CassandraInit {
     private static final String DISTRICT_TABLE_BUILT_SUCC_MESSAGE = "District table built";
@@ -37,20 +43,40 @@ public class CassandraInit {
             System.out.println(INVALID_ARGUMENTS_ERROR_MESSAGE);
             return;
         }
-        String host = args[0];
-        int port = Integer.parseInt(args[1]);
-        System.out.println("Host: " + host + " Port: " + args[1]);
-        Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
-        Session session = cluster.connect();
-        System.out.println(SESSION_CONN_SUCC_MESSAGE);
-        createKeyspace(session);
-        session = cluster.connect(KEYSPACE_REF);
-        buildTables(session);
-        session.close();
-        session = cluster.connect();
-        clearDB(session);
-        session.close();
-        cluster.close();
+        try {
+            String host = args[0];
+            int port = Integer.parseInt(args[1]);
+            System.out.println("Host: " + host + " Port: " + args[1]);
+            Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
+            Session session = cluster.connect();
+            System.out.println(SESSION_CONN_SUCC_MESSAGE);
+            createKeyspace(session);
+            session = cluster.connect(KEYSPACE_REF);
+
+            Tables table = new Tables();
+            table.runCqlScript(session, "./src/main/java/cql/schema.cql");
+            // buildTables(session);
+            session.close();
+            session = cluster.connect();
+            OrderStatusTxn txn = new OrderStatusTxn("1", "1", "1");
+            // BufferedReader reader = new BufferedReader(new FileReader("./0.txt"));
+            // TransactionBuilder builder = new TransactionBuilder();
+            // String line;
+            // while ((line = reader.readLine()) != null) {
+            //     // process the line
+            //     Transaction t = builder.build(reader, line);
+            //     System.out.println(t.getClass().getName());
+            // }
+            txn.run(session);
+
+            // clearDB(session);
+            session.close();
+            cluster.close();
+        } catch (Exception e) {
+            System.out.println(e);
+            return;
+        }
+
     }
 
     private static void clearDB(Session session) {
@@ -70,8 +96,8 @@ public class CassandraInit {
 
     private static void buildTables(Session session) {
         buildWarehouseTable(session);
-//        buildDistrictTable(session);
-//        buildCustomerTable(session);
+        // buildDistrictTable(session);
+        // buildCustomerTable(session);
         buildItemsTable(session);
     }
 
@@ -89,9 +115,9 @@ public class CassandraInit {
                 "W_YTD DECIMAL" + ");";
         session.execute(createWarehouseTableQuery);
         PreparedStatement preparedStatement = session.prepare(
-                "INSERT INTO Warehouse (W_ID, W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_TAX, W_YTD) VALUES " +
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        );
+                "INSERT INTO Warehouse (W_ID, W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_TAX, W_YTD) VALUES "
+                        +
+                        "(?, ?, ?, ?, ?, ?, ?, ?, ?);");
         try {
             Scanner sc = new Scanner(new File(warehouseDataPath));
             while (sc.hasNextLine()) {
@@ -136,8 +162,7 @@ public class CassandraInit {
         PreparedStatement preparedStatement = session.prepare(
                 "INSERT INTO District (D_W_ID, D_ID, D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, " +
                         "D_TAX, D_YTD, D_NEXT_O_ID) VALUES " +
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        );
+                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         try {
             Scanner sc = new Scanner(new File(districtDataPath));
             while (sc.hasNextLine()) {
@@ -155,7 +180,8 @@ public class CassandraInit {
                 BigDecimal tax = new BigDecimal(tokens[8]);
                 BigDecimal ytd = new BigDecimal(tokens[9]);
                 int nextOId = Integer.parseInt(tokens[10]);
-                BoundStatement boundStatement = preparedStatement.bind(wId, dId, name, streetOne, streetTwo, city, state,
+                BoundStatement boundStatement = preparedStatement.bind(wId, dId, name, streetOne, streetTwo, city,
+                        state,
                         zip, tax, ytd, nextOId);
                 session.execute(boundStatement);
             }
@@ -195,8 +221,7 @@ public class CassandraInit {
                 "INSERT INTO Customer (C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, " +
                         "C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, " +
                         "C_YTD_PAYMENT, C_PAYMENT_CNT, C_DELIVERY_CNT, C_DATA) VALUES " +
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        );
+                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy h:mm:ss a");
         try {
             Scanner sc = new Scanner(new File(customerDataPath));
@@ -225,7 +250,8 @@ public class CassandraInit {
                 int deliveryCount = Integer.parseInt(tokens[19]);
                 String data = tokens[20];
 
-                BoundStatement boundStatement = preparedStatement.bind(wId, dId, cId, firstName, middleInitial, lastName,
+                BoundStatement boundStatement = preparedStatement.bind(wId, dId, cId, firstName, middleInitial,
+                        lastName,
                         streetOne, streetTwo, city, state, zip, phone, since, credit, creditLimit, discount, balance,
                         ytdPayment, paymentCount, deliveryCount, data);
                 session.execute(boundStatement);
@@ -248,8 +274,7 @@ public class CassandraInit {
                 "    I_DATA TEXT" + ");";
         session.execute(createItemTableQuery);
         PreparedStatement preparedStatement = session.prepare(
-                "INSERT INTO Item (I_ID,I_NAME,I_PRICE,I_IM_ID,I_DATA) VALUES (?, ?, ?, ?, ?);"
-        );
+                "INSERT INTO Item (I_ID,I_NAME,I_PRICE,I_IM_ID,I_DATA) VALUES (?, ?, ?, ?, ?);");
         try {
             Scanner sc = new Scanner(new File(itemDataPath));
             while (sc.hasNextLine()) {
