@@ -1,0 +1,1 @@
+Store the command.txt close to the jar file to use the commands.

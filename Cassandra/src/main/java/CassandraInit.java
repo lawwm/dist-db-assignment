@@ -1,5 +1,8 @@
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -18,6 +21,8 @@ public class CassandraInit {
     private static final String KEYSPACE_REF = "CS4224H";
     private static final String DATAFILE_PATH = "./project_files/data_files";
 
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SS");
+
     private static final String INVALID_ARGUMENTS_ERROR_MESSAGE = "Arguments Invalid. Enter: Host Port";
     private static final String DISTRICT_FILE_NOT_FOUND_ERROR_MESSAGE = "District file not found";
     private static final String WAREHOUSE_FILE_NOT_FOUND_ERROR_MESSAGE = "Warehouse file not found";
@@ -29,6 +34,7 @@ public class CassandraInit {
     private static final String CLEARED_DB_SUCC_MESSAGE = "Cleared DB";
     private static final String WAREHOUSE_TABLE_BUILT_SUCC_MESSAGE = "Warehouse table built";
     private static final String CUSTOMER_TABLE_BUILT_SUCC_MESSAGE = "Customer table built";
+    private static final String ORDER_TABLE_BUILT_SUCC_MESSAGE = "Order table built";
     private static final String ITEM_TABLE_BUILT_SUCC_MESSAGE = "Item table built";
 
     public static void main(String[] args) {
@@ -69,14 +75,16 @@ public class CassandraInit {
     }
 
     private static void buildTables(Session session) {
-        buildWarehouseTable(session);
-//        buildDistrictTable(session);
-//        buildCustomerTable(session);
-        buildItemsTable(session);
+        createTables(session);
+        execute();
+        ResultSet results;
+        results = session.execute("SELECT count(*) FROM \"Order\";");
+        for (Row row : results) {
+            System.out.println(row);
+        }
     }
 
-    private static void buildWarehouseTable(Session session) {
-        String warehouseDataPath = DATAFILE_PATH + "/warehouse.csv";
+    private static void createTables(Session session) {
         String createWarehouseTableQuery = "CREATE TABLE IF NOT EXISTS Warehouse (" +
                 "W_ID INT PRIMARY KEY," +
                 "W_NAME VARCHAR," +
@@ -88,36 +96,7 @@ public class CassandraInit {
                 "W_TAX DECIMAL," +
                 "W_YTD DECIMAL" + ");";
         session.execute(createWarehouseTableQuery);
-        PreparedStatement preparedStatement = session.prepare(
-                "INSERT INTO Warehouse (W_ID, W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_TAX, W_YTD) VALUES " +
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        );
-        try {
-            Scanner sc = new Scanner(new File(warehouseDataPath));
-            while (sc.hasNextLine()) {
-                String currLine = sc.nextLine();
-                String[] tokens = currLine.split(",");
-                int id = Integer.parseInt(tokens[0]);
-                String name = tokens[1];
-                String streetOne = tokens[2];
-                String streetTwo = tokens[3];
-                String city = tokens[4];
-                String state = tokens[5];
-                String zip = tokens[6];
-                BigDecimal tax = new BigDecimal(tokens[7]);
-                BigDecimal ytd = new BigDecimal(tokens[8]);
-                BoundStatement boundStatement = preparedStatement.bind(id, name, streetOne, streetTwo, city, state,
-                        zip, tax, ytd);
-                session.execute(boundStatement);
-            }
-        } catch (FileNotFoundException e) {
-            System.out.println(WAREHOUSE_FILE_NOT_FOUND_ERROR_MESSAGE);
-        }
         System.out.println(WAREHOUSE_TABLE_BUILT_SUCC_MESSAGE);
-    }
-
-    private static void buildDistrictTable(Session session) {
-        String districtDataPath = DATAFILE_PATH + "/district.csv";
         String createDistrictTableQuery = "CREATE TABLE IF NOT EXISTS District (" +
                 "D_W_ID INT," +
                 "D_ID INT," +
@@ -133,44 +112,11 @@ public class CassandraInit {
                 "PRIMARY KEY ( (D_ID, D_W_ID) )" +
                 ");";
         session.execute(createDistrictTableQuery);
-        PreparedStatement preparedStatement = session.prepare(
-                "INSERT INTO District (D_W_ID, D_ID, D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, " +
-                        "D_TAX, D_YTD, D_NEXT_O_ID) VALUES " +
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        );
-        try {
-            Scanner sc = new Scanner(new File(districtDataPath));
-            while (sc.hasNextLine()) {
-                String currLine = sc.nextLine();
-                String[] tokens = currLine.split(",");
-                int wId = Integer.parseInt(tokens[0]);
-                int dId = Integer.parseInt(tokens[1]);
-                System.out.println(tokens[0] + " " + tokens[1]);
-                String name = tokens[2];
-                String streetOne = tokens[3];
-                String streetTwo = tokens[4];
-                String city = tokens[5];
-                String state = tokens[6];
-                String zip = tokens[7];
-                BigDecimal tax = new BigDecimal(tokens[8]);
-                BigDecimal ytd = new BigDecimal(tokens[9]);
-                int nextOId = Integer.parseInt(tokens[10]);
-                BoundStatement boundStatement = preparedStatement.bind(wId, dId, name, streetOne, streetTwo, city, state,
-                        zip, tax, ytd, nextOId);
-                session.execute(boundStatement);
-            }
-        } catch (FileNotFoundException e) {
-            System.out.println(DISTRICT_FILE_NOT_FOUND_ERROR_MESSAGE);
-        }
         System.out.println(DISTRICT_TABLE_BUILT_SUCC_MESSAGE);
-    }
-
-    private static void buildCustomerTable(Session session) {
-        String customerDataPath = DATAFILE_PATH + "/customer.csv";
         String createCustomerTableQuery = "CREATE TABLE IF NOT EXISTS Customer (" +
                 "C_W_ID INT," +
                 "C_D_ID INT," +
-                "C_ID INT PRIMARY KEY," +
+                "C_ID INT," +
                 "C_FIRST VARCHAR," +
                 "C_MIDDLE VARCHAR," +
                 "C_LAST VARCHAR," +
@@ -188,54 +134,90 @@ public class CassandraInit {
                 "C_YTD_PAYMENT DOUBLE," +
                 "C_PAYMENT_CNT INT," +
                 "C_DELIVERY_CNT INT," +
-                "C_DATA VARCHAR" +
+                "C_DATA VARCHAR, " +
+                "PRIMARY KEY ( (C_W_ID, C_D_ID, C_ID) )" +
                 ");";
         session.execute(createCustomerTableQuery);
-        PreparedStatement preparedStatement = session.prepare(
-                "INSERT INTO Customer (C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, " +
-                        "C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, " +
-                        "C_YTD_PAYMENT, C_PAYMENT_CNT, C_DELIVERY_CNT, C_DATA) VALUES " +
-                        "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"
-        );
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy h:mm:ss a");
+        System.out.println(CUSTOMER_TABLE_BUILT_SUCC_MESSAGE);
+        String createOrderTableQuery = "CREATE TABLE IF NOT EXISTS \"Order\" (" +
+                "O_W_ID INT," +
+                "O_D_ID INT," +
+                "O_ID INT," +
+                "O_C_ID INT," +
+                "O_CARRIER_ID INT," +
+                "O_OL_CNT DECIMAL," +
+                "O_ALL_LOCAL DECIMAL," +
+                "O_ENTRY_D TIMESTAMP," +
+                "PRIMARY KEY (( O_W_ID, O_D_ID, O_ID ))" +
+                ");";
+        session.execute(createOrderTableQuery);
+        System.out.println(ORDER_TABLE_BUILT_SUCC_MESSAGE);
+    }
+
+    private static void execute() {
+        String command = "apache-cassandra-4.1.3/bin/cqlsh -f command.txt";
+        executeCommand(command);
+    }
+
+    private static void executeCommand(String command) {
         try {
-            Scanner sc = new Scanner(new File(customerDataPath));
+            Process process = Runtime.getRuntime().exec(command);
+
+            // Capture and print the command output
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String currLine;
+            while ((currLine = reader.readLine()) != null) {
+                System.out.println(currLine);
+            }
+
+            // Wait for the command to complete
+            int exitCode = process.waitFor();
+            System.out.println("Command exited with code: " + exitCode);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void buildOrderTable(Session session) {
+        String orderDataPath = DATAFILE_PATH + "/order.csv";
+        String createOrderTableQuery = "CREATE TABLE IF NOT EXISTS \"Order\" (" +
+                "O_W_ID INT," +
+                "O_D_ID INT," +
+                "O_ID INT," +
+                "O_C_ID INT," +
+                "O_CARRIER_ID INT," +
+                "O_OL_CNT DECIMAL," +
+                "O_ALL_LOCAL DECIMAL," +
+                "O_ENTRY_D TIMESTAMP," +
+                "PRIMARY KEY (( O_W_ID, O_D_ID, O_ID ))" +
+                ");";
+        session.execute(createOrderTableQuery);
+        PreparedStatement preparedStatement = session.prepare(
+                "INSERT INTO \"Order\" (O_W_ID, O_D_ID, O_ID, O_C_ID, O_CARRIER_ID, O_OL_CNT, O_ALL_LOCAL, O_ENTRY_D) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
+        );
+
+        try {
+            Scanner sc = new Scanner(new File(orderDataPath));
             while (sc.hasNextLine()) {
                 String currLine = sc.nextLine();
                 String[] tokens = currLine.split(",");
-                int wId = Integer.parseInt(tokens[0]);
-                int dId = Integer.parseInt(tokens[1]);
-                int cId = Integer.parseInt(tokens[2]);
-                String firstName = tokens[3];
-                String middleInitial = tokens[4];
-                String lastName = tokens[5];
-                String streetOne = tokens[6];
-                String streetTwo = tokens[7];
-                String city = tokens[8];
-                String state = tokens[9];
-                String zip = tokens[10];
-                String phone = tokens[11];
-                Date since = dateFormat.parse(tokens[12]);
-                String credit = tokens[13];
-                BigDecimal creditLimit = new BigDecimal(tokens[14]);
-                BigDecimal discount = new BigDecimal(tokens[15]);
-                BigDecimal balance = new BigDecimal(tokens[16]);
-                double ytdPayment = Double.parseDouble(tokens[17]);
-                int paymentCount = Integer.parseInt(tokens[18]);
-                int deliveryCount = Integer.parseInt(tokens[19]);
-                String data = tokens[20];
-
-                BoundStatement boundStatement = preparedStatement.bind(wId, dId, cId, firstName, middleInitial, lastName,
-                        streetOne, streetTwo, city, state, zip, phone, since, credit, creditLimit, discount, balance,
-                        ytdPayment, paymentCount, deliveryCount, data);
+                System.out.println(currLine);
+                int warehouseId = Integer.parseInt(tokens[0]);
+                int districtId = Integer.parseInt(tokens[1]);
+                int orderId = Integer.parseInt(tokens[2]);
+                int customerId = Integer.parseInt(tokens[3]);
+                int carrierId = Integer.parseInt(tokens[4]);
+                BigDecimal olCount = new BigDecimal(tokens[5]);
+                BigDecimal allLocal = new BigDecimal(tokens[6]);
+                Date entryDate = DATE_FORMAT.parse(tokens[7]);
+                BoundStatement boundStatement = preparedStatement.bind(warehouseId, districtId, orderId, customerId,
+                        carrierId, olCount, allLocal, entryDate);
                 session.execute(boundStatement);
             }
-        } catch (FileNotFoundException e) {
-            System.out.println(CUSTOMER_FILE_NOT_FOUND_ERROR_MESSAGE);
-        } catch (ParseException e) {
-            System.out.println(INVALID_DATE_FORMAT_ERROR_MESSAGE);
+        } catch (FileNotFoundException | ParseException e) {
+            System.out.println("Order file not found or date parsing error");
         }
-        System.out.println(CUSTOMER_TABLE_BUILT_SUCC_MESSAGE);
     }
 
     private static void buildItemsTable(Session session) {
@@ -268,4 +250,6 @@ public class CassandraInit {
         }
         System.out.println(ITEM_TABLE_BUILT_SUCC_MESSAGE);
     }
+
+
 }
