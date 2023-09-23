@@ -4,9 +4,10 @@ CREATE KEYSPACE IF NOT EXISTS CS4224H WITH replication = {'class': 'SimpleStrate
 USE CS4224H;
 
 -- Creates the tables.
-DROP TYPE IF EXISTS Item;
-CREATE TYPE Item (
+DROP TYPE IF EXISTS Item_Type;
+CREATE TYPE Item_Type (
   OL_I_ID int,
+  I_NAME text,
   OL_SUPPLY_W_ID int,
   OL_QUANTITY int,
   OL_AMOUNT decimal
@@ -36,23 +37,11 @@ CREATE TABLE orders_by_district (
   C_FIRST text,
   C_MIDDLE text,
   C_LAST text,
-  POPULAR_ITEMS list<frozen<Item>>,
-  PRIMARY KEY ((D_W_ID, D_ID), O_ID)
-);
+  POPULAR_ITEMS list<frozen<Item_Type>>,
+  PRIMARY KEY ((D_W_ID, D_ID), O_ID DESC)
+)
 
 -- Transaction 5
-DROP TABLE IF EXISTS stocks_by_warehouse;
-CREATE TABLE stocks_by_warehouse (
-	S_W_ID int,
-	S_I_ID int,
-	S_QUANTITY decimal, 
-  S_YTD decimal,
-  S_ORDER_CNT int,
-  S_REMOTE_CNT int,
-	PRIMARY KEY ((S_W_ID, S_I_ID))
-);
-
-
 DROP TABLE IF EXISTS stocks_by_warehouse;
 CREATE TABLE stocks_by_warehouse (
 	S_W_ID int,
