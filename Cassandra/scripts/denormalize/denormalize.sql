@@ -10,7 +10,7 @@ JOIN OrderLine OL ON O.O_ID = OL.OL_O_ID AND O.O_D_ID = OL.OL_D_ID AND O.O_W_ID 
 GROUP BY C.C_W_ID, C.C_D_ID, C.C_ID, O.O_ID, O.O_ENTRY_D, O.O_CARRIER_ID, OL.OL_DELIVERY_D) TO '/container/dir/orders_by_customer.csv' WITH CSV;
 
 -- district_by_warehouse denormalization
-COPY (select W.W_ID, D.D_W_ID, W.W_NAME, W.W_STREET_1, W.W_STREET_2, W.W_CITY, W.W_STATE, W.W_ZIP, W.W_TAX, D.D_NAME, D.D_STREET_1, D.D_STREET_2, 
+COPY (select W.W_ID, D.D_ID, W.W_NAME, W.W_STREET_1, W.W_STREET_2, W.W_CITY, W.W_STATE, W.W_ZIP, W.W_TAX, D.D_NAME, D.D_STREET_1, D.D_STREET_2, 
 D.D_CITY, D.D_STATE, D.D_ZIP, D.D_TAX, D.D_YTD, D.D_NEXT_O_ID, (select O.o_id from OrderTable O where O.O_W_ID = W.W_ID and O.O_D_ID = D.D_ID and O.O_CARRIER_ID IS NULL order by O.O_ID asc limit 1) as D_LAST_UNDELIVERED_O_D
 FROM District D
 JOIN Warehouse W on D.D_W_ID = W.W_ID) TO '/container/dir/district_by_warehouse.csv' WITH CSV;
