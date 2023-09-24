@@ -18,6 +18,7 @@ import utils.Transaction;
 import utils.TransactionBuilder;
 import java.io.BufferedReader;
 import java.io.FileReader;
+import utils.ItemsMetadata;
 
 public class CassandraInit {
     private static final String DISTRICT_TABLE_BUILT_SUCC_MESSAGE = "District table built";
@@ -52,6 +53,9 @@ public class CassandraInit {
             Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
             Session session = cluster.connect(KEYSPACE_REF);
             if (cmd.equals(commands[2])) {
+                ItemsMetadata itemsMetadata = new ItemsMetadata();
+                itemsMetadata.populate("./scripts/data/item.csv");
+
                 String clientpath = args[3];
                 System.out.println(clientpath);
                 BufferedReader reader = new BufferedReader(new FileReader(clientpath));
@@ -60,8 +64,9 @@ public class CassandraInit {
                 while ((line = reader.readLine()) != null) {
                     // process the line
                     Transaction t = builder.build(reader, line);
-                    t.run(session);
+                    t.run(session, itemsMetadata);
                 }
+                reader.close();
             } else if (cmd.equals(commands[0])) {
                 Tables tbl = new Tables();
                 tbl.runCqlScript(session, "./src/main/java/cql/schema.cql");

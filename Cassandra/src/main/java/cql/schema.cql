@@ -13,6 +13,31 @@ CREATE TYPE Item (
 );
 
 -- Transaction 4, 8
+DROP TABLE IF EXISTS district_by_warehouse;
+CREATE TABLE district_by_warehouse (
+  W_ID int,
+  D_DID int,
+  W_NAME varchar(10),
+  W_STREET_1 varchar(20),
+  W_STREET_2 varchar(20),
+  W_CITY varchar(20),
+  W_STATE char(2),
+  W_ZIP char(9),
+  W_TAX decimal(4,4),
+  D_NAME varchar(10),
+  D_STREET_1 varchar(20),
+  D_STREET_2 varchar(20),
+  D_CITY varchar(20),
+  D_STATE char(2),
+  D_ZIP char(9),
+  D_TAX decimal(4,4),
+  D_YTD decimal(12,2),
+  D_NEXT_O_ID int,
+  D_LAST_UNDELIVERED_O_D int,
+  PRIMARY KEY ((W_ID, D_ID))
+);
+
+
 DROP TABLE IF EXISTS orders_by_customer;
 CREATE TABLE orders_by_customer (
 	C_W_ID int,
@@ -67,6 +92,8 @@ CREATE TABLE stocks_by_warehouse (
 -- Transaction 7
 DROP TABLE IF EXISTS customers;
 CREATE TABLE customers (
+  C_W_ID int,
+	C_D_ID int, 
 	C_ID int,
 	C_FIRST text,
 	C_MIDDLE text,
@@ -74,7 +101,7 @@ CREATE TABLE customers (
   C_BALANCE decimal,
   W_NAME text,
   D_NAME text,
-	PRIMARY KEY ((C_ID), C_BALANCE)
+	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
 );
 
 

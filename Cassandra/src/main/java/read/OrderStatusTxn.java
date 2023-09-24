@@ -1,5 +1,6 @@
 package read;
 
+import utils.ItemsMetadata;
 import utils.Transaction;
 
 import com.datastax.driver.core.ResultSet;
@@ -8,11 +9,12 @@ import com.datastax.driver.core.UDTValue;
 import com.datastax.driver.core.Row;
 
 import java.math.BigDecimal;
+import java.util.Date;
 import java.util.List;
 
 public class OrderStatusTxn implements Transaction {
-  private static final String GET_ORDER_BY_CUSTOMER = "SELECT * FROM CS4224H.orders_by_customer WHERE C_W_ID = %d AND C_D_ID = %d AND C_ID = %d ORDER BY O_ID DESC LIMIT 1";
-  private static final String GET_CUSTOMER = "SELECT * FROM CS4224H.customers WHERE C_ID = %d;";
+  private static final String GET_ORDER_BY_CUSTOMER = "SELECT * FROM CS4224H.orders_by_customer WHERE C_W_ID = %s AND C_D_ID = %s AND C_ID = %s ORDER BY O_ID DESC LIMIT 1";
+  private static final String GET_CUSTOMER = "SELECT * FROM CS4224H.customers WHERE C_W_ID=%s AND C_D_ID=%s AND C_ID = %s;";
 
   private final String warehouse_id;
   private final String district_id;
@@ -24,15 +26,18 @@ public class OrderStatusTxn implements Transaction {
     this.customer_id = customer_id;
   }
 
-  public void run(Session session) {
-    String getCustomerLastOrderQuery = String.format(GET_ORDER_BY_CUSTOMER, Integer.parseInt(warehouse_id),
-        Integer.parseInt(district_id),
-        Integer.parseInt(customer_id));
-    String getCustomerQuery = String.format(GET_CUSTOMER, Integer.parseInt(customer_id));
+  public void run(Session session, ItemsMetadata itemsMetadata) {
+    String getCustomerLastOrderQuery = String.format(GET_ORDER_BY_CUSTOMER, warehouse_id, district_id, customer_id);
+    String getCustomerQuery = String.format(GET_CUSTOMER, warehouse_id, district_id, customer_id);
 
     // Get customer's name
     ResultSet customerResult = session.execute(getCustomerQuery);
     Row customerRow = customerResult.one();
+    if (customerRow == null) {
+      System.out.printf("Customer %s not found\n", customer_id);
+      return;
+    }
+
     String c_first = customerRow.getString("C_FIRST");
     String c_middle = customerRow.getString("C_MIDDLE");
     String c_last = customerRow.getString("C_LAST");
@@ -42,13 +47,17 @@ public class OrderStatusTxn implements Transaction {
     ResultSet result = session.execute(getCustomerLastOrderQuery);
     Row row = result.one();
     if (row == null) {
+      System.out.printf("No orders found for customer %s\n", customer_id);
       return;
     }
     // Get Customer's Last Order
     int o_id = row.getInt("O_ID");
-    String o_entry_d = row.getTimestamp("O_ENTRY_D").toString();
     int o_carrier_id = row.getInt("O_CARRIER_ID");
-    String ol_delivery_d = row.getTimestamp("OL_DELIVERY_D").toString();
+    Date o_entry_d_Date = row.getTimestamp("O_ENTRY_D");
+    Date ol_delivery_d_Date = row.getTimestamp("OL_DELIVERY_D");
+
+    String o_entry_d = o_entry_d_Date == null ? "NULL" : o_entry_d_Date.toString();
+    String ol_delivery_d = ol_delivery_d_Date == null ? "NULL" : ol_delivery_d_Date.toString();
     System.out.printf("O_ID: %s O_ENTRY_D: %s O_CARRIER_ID: %s\n", o_id, o_entry_d, o_carrier_id);
 
     // Get each Item in customer's last order
@@ -62,6 +71,5 @@ public class OrderStatusTxn implements Transaction {
           ol_supply_w_id,
           ol_quantity, ol_amount.toString(), ol_delivery_d);
     }
-
   }
 }
