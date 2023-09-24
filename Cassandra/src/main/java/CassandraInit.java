@@ -37,8 +37,10 @@ public class CassandraInit {
     private static final String CUSTOMER_TABLE_BUILT_SUCC_MESSAGE = "Customer table built";
     private static final String ITEM_TABLE_BUILT_SUCC_MESSAGE = "Item table built";
 
+    private static final String[] commands = { "Create", "Load", "Run" };
+
     public static void main(String[] args) {
-        boolean hasNecessaryArgs = args.length >= 2;
+        boolean hasNecessaryArgs = args.length >= 3;
         if (!hasNecessaryArgs) {
             System.out.println(INVALID_ARGUMENTS_ERROR_MESSAGE);
             return;
@@ -46,34 +48,30 @@ public class CassandraInit {
         try {
             String host = args[0];
             int port = Integer.parseInt(args[1]);
-            System.out.println("Host: " + host + " Port: " + args[1]);
+            String cmd = args[2];
             Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
-            Session session = cluster.connect();
-            System.out.println(SESSION_CONN_SUCC_MESSAGE);
-            createKeyspace(session);
-            session = cluster.connect(KEYSPACE_REF);
+            Session session = cluster.connect(KEYSPACE_REF);
+            if (cmd.equals(commands[2])) {
+                String clientpath = args[3];
+                System.out.println(clientpath);
+                BufferedReader reader = new BufferedReader(new FileReader(clientpath));
+                TransactionBuilder builder = new TransactionBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // process the line
+                    Transaction t = builder.build(reader, line);
+                    t.run(session);
+                }
+            } else if (cmd.equals(commands[0])) {
+                Tables tbl = new Tables();
+                tbl.runCqlScript(session, "./src/main/java/cql/schema.cql");
+            }
 
-            Tables table = new Tables();
-            table.runCqlScript(session, "./src/main/java/cql/schema.cql");
-            // buildTables(session);
-            session.close();
-            session = cluster.connect();
-            OrderStatusTxn txn = new OrderStatusTxn("1", "1", "1");
-            // BufferedReader reader = new BufferedReader(new FileReader("./0.txt"));
-            // TransactionBuilder builder = new TransactionBuilder();
-            // String line;
-            // while ((line = reader.readLine()) != null) {
-            //     // process the line
-            //     Transaction t = builder.build(reader, line);
-            //     System.out.println(t.getClass().getName());
-            // }
-            txn.run(session);
-
-            // clearDB(session);
             session.close();
             cluster.close();
         } catch (Exception e) {
             System.out.println(e);
+
             return;
         }
 

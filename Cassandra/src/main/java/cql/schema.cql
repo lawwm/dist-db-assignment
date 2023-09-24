@@ -74,7 +74,7 @@ CREATE TABLE customers (
   C_BALANCE decimal,
   W_NAME text,
   D_NAME text,
-	PRIMARY KEY ((C_FIRST, C_MIDDLE, C_LAST), C_BALANCE)
+	PRIMARY KEY ((C_ID), C_BALANCE)
 );
 
 
@@ -85,19 +85,4 @@ CREATE TABLE customers_by_item (
 	C_ID int,
   W_ID int,
 	PRIMARY KEY ((I_ID))
-);
-
-INSERT INTO orders_by_customer (C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS)
-VALUES (
-  1,  -- C_W_ID value
-  1,  -- C_D_ID value
-  1,  -- C_ID value
-  2001,  -- O_ID value
-  '2023-09-13 12:00:00',  -- O_ENTRY_D value
-  101,  -- O_CARRIER_ID value
-  '2023-09-14 14:30:00',  -- OL_DELIVERY_D value
-  [   -- Start of ITEMS list
-    {OL_I_ID: 10, OL_SUPPLY_W_ID: 2, OL_QUANTITY: 5, OL_AMOUNT: 50.75},
-    {OL_I_ID: 11, OL_SUPPLY_W_ID: 3, OL_QUANTITY: 3, OL_AMOUNT: 30.50}
-  ]   -- End of ITEMS list
 );
