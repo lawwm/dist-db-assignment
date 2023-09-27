@@ -21,7 +21,7 @@ public class TransactionBuilder {
     switch (tokens[0]) {
       case "N":
         String[][] items = buildItems(reader, Integer.parseInt(tokens[4]));
-        txn = new NewOrderTxn(row, row, row, items);
+        txn = new NewOrderTxn(tokens[1], tokens[2], tokens[3], items);
         break;
       case "P":
         txn = new PaymentTxn(tokens[1], tokens[2], tokens[3], tokens[4]);

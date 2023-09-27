@@ -1,5 +1,6 @@
 package read;
 
+import utils.ItemsMetadata;
 import utils.Transaction;
 
 import java.util.List;

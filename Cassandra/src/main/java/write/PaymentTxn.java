@@ -1,5 +1,6 @@
 package write;
 
+import utils.ItemsMetadata;
 import utils.Transaction;
 
 import java.math.BigDecimal;
@@ -20,7 +21,7 @@ public class PaymentTxn implements Transaction {
     this.payment = new BigDecimal(payment);
   }
 
-  public void run(Session session) {
+  public void run(Session session, ItemsMetadata itemsMetadata) {
 
   }
 }

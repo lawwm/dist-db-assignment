@@ -14,6 +14,31 @@ CREATE TYPE Item_Type (
 );
 
 -- Transaction 4, 8
+DROP TABLE IF EXISTS district_by_warehouse;
+CREATE TABLE district_by_warehouse (
+  W_ID int,
+  D_DID int,
+  W_NAME text,
+  W_STREET_1 text,
+  W_STREET_2 text,
+  W_CITY text,
+  W_STATE text,
+  W_ZIP text,
+  W_TAX decimal(4,4),
+  D_NAME text,
+  D_STREET_1 text,
+  D_STREET_2 text,
+  D_CITY text,
+  D_STATE text,
+  D_ZIP text,
+  D_TAX decimal(4,4),
+  D_YTD decimal(12,2),
+  D_NEXT_O_ID int,
+  D_LAST_UNDELIVERED_O_D int,
+  PRIMARY KEY ((W_ID, D_ID))
+);
+
+
 DROP TABLE IF EXISTS orders_by_customer;
 CREATE TABLE orders_by_customer (
 	C_W_ID int,
@@ -56,6 +81,8 @@ CREATE TABLE stocks_by_warehouse (
 -- Transaction 7
 DROP TABLE IF EXISTS customers;
 CREATE TABLE customers (
+  C_W_ID int,
+	C_D_ID int, 
 	C_ID int,
 	C_FIRST text,
 	C_MIDDLE text,
@@ -63,7 +90,7 @@ CREATE TABLE customers (
   C_BALANCE decimal,
   W_NAME text,
   D_NAME text,
-	PRIMARY KEY ((C_FIRST, C_MIDDLE, C_LAST), C_BALANCE)
+	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
 );
 
 
@@ -74,19 +101,4 @@ CREATE TABLE customers_by_item (
 	C_ID int,
   W_ID int,
 	PRIMARY KEY ((I_ID))
-);
-
-INSERT INTO orders_by_customer (C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS)
-VALUES (
-  1,  -- C_W_ID value
-  1,  -- C_D_ID value
-  1,  -- C_ID value
-  2001,  -- O_ID value
-  '2023-09-13 12:00:00',  -- O_ENTRY_D value
-  101,  -- O_CARRIER_ID value
-  '2023-09-14 14:30:00',  -- OL_DELIVERY_D value
-  [   -- Start of ITEMS list
-    {OL_I_ID: 10, OL_SUPPLY_W_ID: 2, OL_QUANTITY: 5, OL_AMOUNT: 50.75},
-    {OL_I_ID: 11, OL_SUPPLY_W_ID: 3, OL_QUANTITY: 3, OL_AMOUNT: 30.50}
-  ]   -- End of ITEMS list
 );
