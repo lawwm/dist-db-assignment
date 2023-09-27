@@ -1,5 +1,6 @@
 package write;
 
+import utils.ItemsMetadata;
 import utils.Transaction;
 
 import java.math.BigDecimal;
@@ -16,7 +17,7 @@ public class DeliveryTxn implements Transaction {
     this.carrier_id = carrier_id;
   }
 
-  public void run(Session session) {
+  public void run(Session session, ItemsMetadata itemsMetadata) {
 
   }
 }
