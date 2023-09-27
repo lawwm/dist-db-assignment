@@ -30,7 +30,7 @@ public class StockLevelTxn implements Transaction {
         this.last_l = Integer.parseInt(last_l);
     }
 
-    public void run(Session session) {
+    public void run(Session session, ItemsMetadata itemsMetadata) {
         int total_number_of_items = 0;
         String output = "Total number of items ";
 
