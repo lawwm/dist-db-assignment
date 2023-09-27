@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.math.BigDecimal;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Scanner;
 
@@ -15,6 +16,13 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+
+import table.Tables;
+import read.OrderStatusTxn;
+import utils.Transaction;
+import utils.TransactionBuilder;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 public class CassandraInit {
     private static final String DISTRICT_TABLE_BUILT_SUCC_MESSAGE = "District table built";
@@ -43,20 +51,40 @@ public class CassandraInit {
             System.out.println(INVALID_ARGUMENTS_ERROR_MESSAGE);
             return;
         }
-        String host = args[0];
-        int port = Integer.parseInt(args[1]);
-        System.out.println("Host: " + host + " Port: " + args[1]);
-        Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
-        Session session = cluster.connect();
-        System.out.println(SESSION_CONN_SUCC_MESSAGE);
-        createKeyspace(session);
-        session = cluster.connect(KEYSPACE_REF);
-        buildTables(session);
-        session.close();
-        session = cluster.connect();
-        clearDB(session);
-        session.close();
-        cluster.close();
+        try {
+            String host = args[0];
+            int port = Integer.parseInt(args[1]);
+            System.out.println("Host: " + host + " Port: " + args[1]);
+            Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
+            Session session = cluster.connect();
+            System.out.println(SESSION_CONN_SUCC_MESSAGE);
+            createKeyspace(session);
+            session = cluster.connect(KEYSPACE_REF);
+
+            Tables table = new Tables();
+            table.runCqlScript(session, "./src/main/java/cql/schema.cql");
+            // buildTables(session);
+            session.close();
+            session = cluster.connect();
+            OrderStatusTxn txn = new OrderStatusTxn("1", "1", "1");
+            // BufferedReader reader = new BufferedReader(new FileReader("./0.txt"));
+            // TransactionBuilder builder = new TransactionBuilder();
+            // String line;
+            // while ((line = reader.readLine()) != null) {
+            // // process the line
+            // Transaction t = builder.build(reader, line);
+            // System.out.println(t.getClass().getName());
+            // }
+            txn.run(session);
+
+            // clearDB(session);
+            session.close();
+            cluster.close();
+        } catch (Exception e) {
+            System.out.println(e);
+            return;
+        }
+
     }
 
     private static void clearDB(Session session) {
@@ -193,9 +221,9 @@ public class CassandraInit {
                 ");";
         session.execute(createOrderTableQuery);
         PreparedStatement preparedStatement = session.prepare(
-                "INSERT INTO \"Order\" (O_W_ID, O_D_ID, O_ID, O_C_ID, O_CARRIER_ID, O_OL_CNT, O_ALL_LOCAL, O_ENTRY_D) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?);"
-        );
+                "INSERT INTO \"Order\" (O_W_ID, O_D_ID, O_ID, O_C_ID, O_CARRIER_ID, O_OL_CNT, O_ALL_LOCAL, O_ENTRY_D) "
+                        +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?);");
 
         try {
             Scanner sc = new Scanner(new File(orderDataPath));
@@ -230,8 +258,7 @@ public class CassandraInit {
                 "    I_DATA TEXT" + ");";
         session.execute(createItemTableQuery);
         PreparedStatement preparedStatement = session.prepare(
-                "INSERT INTO Item (I_ID,I_NAME,I_PRICE,I_IM_ID,I_DATA) VALUES (?, ?, ?, ?, ?);"
-        );
+                "INSERT INTO Item (I_ID,I_NAME,I_PRICE,I_IM_ID,I_DATA) VALUES (?, ?, ?, ?, ?);");
         try {
             Scanner sc = new Scanner(new File(itemDataPath));
             while (sc.hasNextLine()) {
@@ -250,6 +277,5 @@ public class CassandraInit {
         }
         System.out.println(ITEM_TABLE_BUILT_SUCC_MESSAGE);
     }
-
 
 }
