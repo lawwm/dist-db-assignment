@@ -12,6 +12,7 @@ import utils.TransactionBuilder;
 
 public class CassandraInit {
     private static final String KEYSPACE_REF = "CS4224H";
+    private static final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
 
     private static final String INVALID_ARGUMENTS_ERROR_MESSAGE = "Arguments Invalid. Enter: Host Port";
 
@@ -60,6 +61,7 @@ public class CassandraInit {
         Tables table = new Tables();
         table.runCqlScript(session, "./schema.cql");
         execute();
+        session.execute(CREATE_TEMP_ITEM_ID_INDEX_QUERY);
         return session;
     }
 

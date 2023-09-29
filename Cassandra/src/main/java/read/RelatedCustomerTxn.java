@@ -20,7 +20,6 @@ public class RelatedCustomerTxn implements Transaction {
   private final String ALL_CUSTOMERS_QUERY = "Select * from customer_denorm;";
   private final String ALL_ITEMS_QUERY = "Select ol_i_id from customer_item_denorm where " +
           "c_w_id = ? and c_d_id = ? and c_id = ?;";
-  private final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
   private final String COUNT_ITEMS_QUERY = "Select c_w_id, c_d_id, c_id, COUNT(ol_i_id) as ol_i_id_count " +
           "from customer_item_denorm where ol_i_id in ? " +
           "group by c_w_id, c_d_id, c_id ALLOW FILTERING;";
@@ -46,7 +45,6 @@ public class RelatedCustomerTxn implements Transaction {
         possibleCustomers.add(currCustRow);
       }
     }
-    session.execute(CREATE_TEMP_ITEM_ID_INDEX_QUERY);
     PreparedStatement prepareCountItemQuery = session.prepare(COUNT_ITEMS_QUERY);
     ArrayList<Integer> refDistItemsList = new ArrayList<>(refDistItemsSet);
     BoundStatement countItemQuery = prepareCountItemQuery.bind(refDistItemsList);

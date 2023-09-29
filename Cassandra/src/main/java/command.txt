@@ -1,3 +1,2 @@
 COPY cs4224h.customer_denorm (C_W_ID, C_D_ID, C_ID) FROM './project_files/data_files/customer_denorm.csv' WITH DELIMITER = ',';
 COPY cs4224h.customer_item_denorm (C_W_ID, C_D_ID, C_ID, OL_I_ID) FROM './project_files/data_files/customer_item_denorm.csv' WITH DELIMITER = ',';
-COPY cs4224h.district_denorm (d_w_id, d_id, d_next_o_id) FROM './project_files/data_files/district_denorm.csv' WITH DELIMITER = ',';
