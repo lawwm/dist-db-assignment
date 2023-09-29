@@ -1,8 +1,3 @@
--- Creates the keyspace.
-DROP KEYSPACE IF EXISTS CS4224H;
-CREATE KEYSPACE IF NOT EXISTS CS4224H WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3};
-USE CS4224H;
-
 -- Creates the tables.
 DROP TYPE IF EXISTS Item;
 CREATE TYPE Item (
@@ -100,4 +95,22 @@ VALUES (
     {OL_I_ID: 10, OL_SUPPLY_W_ID: 2, OL_QUANTITY: 5, OL_AMOUNT: 50.75},
     {OL_I_ID: 11, OL_SUPPLY_W_ID: 3, OL_QUANTITY: 3, OL_AMOUNT: 30.50}
   ]   -- End of ITEMS list
+);
+
+-- T8
+DROP TABLE IF EXISTS customer_denorm;
+CREATE TABLE customer_denorm (
+    C_W_ID int,
+    C_D_ID int,
+    C_ID int,
+    PRIMARY KEY (C_W_ID, C_D_ID, C_ID)
+);
+
+DROP TABLE IF EXISTS customer_item_denorm;
+CREATE TABLE customer_item_denorm (
+    C_W_ID int,
+    C_D_ID int,
+    C_ID int,
+    OL_I_ID int,
+    PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), OL_I_ID)
 );

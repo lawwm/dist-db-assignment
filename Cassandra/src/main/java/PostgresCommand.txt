@@ -1,0 +1,5 @@
+For transaction 8:
+Copy (SELECT c_w_id, c_d_id, c_id from customer) to '/temp/customer_denorm.csv' with csv delimiter ',';
+Copy (select o_w_id, o_d_id, o_c_id, ol_i_id from ordertable join orderline on
+    o_w_id = ol_w_id and o_d_id = ol_d_id and o_id = ol_o_id) to '/temp/customer_item_denorm.csv' with
+    csv delimiter ',';
