@@ -4,7 +4,7 @@ How to compile and run the project
 
 ```
 .\gradlew shadowJar
-java -jar .\build\libs\CassandraProcessor.jar 127.0.0.1 9042
+java -jar .\build\libs\CassandraProcessor.jar 127.0.0.1 9042 Create
 ```
 
 ## Denormalize data files
@@ -92,5 +92,18 @@ CREATE TABLE CS4224H.customers (
   D_NAME text,
 	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
 );"
+
+```
+
+Load data files into cassandraDB
+
+```
+docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.orders_by_customer(C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS) FROM 'container/dir/orders_by_customer.csv' WITH DELIMITER=',';"
+
+docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers(C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_BALANCE, C_YTD_PAYMENT, W_NAME, D_NAME, C_DELIVERY_CNT) FROM 'container/dir/customer_balance.csv' WITH DELIMITER=',';"
+
+docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.district_by_warehouse (W_ID, D_ID, W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_TAX, D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_TAX, D_YTD, D_NEXT_O_ID, D_LAST_UNDELIVERED_O_D) FROM 'container/dir/district_by_warehouse.csv' WITH DELIMITER=',';"
+
+docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers_by_order (C_W_ID, C_D_ID, C_ID, O_ID) FROM 'container/dir/customer_by_order.csv' WITH DELIMITER=',';"
 
 ```
