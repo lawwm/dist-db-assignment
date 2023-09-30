@@ -4,6 +4,14 @@ CREATE KEYSPACE IF NOT EXISTS CS4224H WITH replication = {'class': 'SimpleStrate
 USE CS4224H;
 
 -- Creates the tables.
+DROP TYPE IF EXISTS Item;
+CREATE TYPE Item (
+  OL_I_ID int,
+  OL_SUPPLY_W_ID int,
+  OL_QUANTITY int,
+  OL_AMOUNT decimal
+);
+
 DROP TYPE IF EXISTS Item_Type;
 CREATE TYPE Item_Type (
   OL_I_ID int,

@@ -25,7 +25,7 @@ public class PopularItemTxn implements Transaction {
         this.last_l = Integer.parseInt(last_l);
     }
 
-    public void run(Session session) {
+    public void run(Session session, ItemsMetadata itemsMetadata) {
 
         String query = String.format(GET_ORDER_BY_DISTRICT, this.warehouse_id,
                 this.district_id, this.last_l);
