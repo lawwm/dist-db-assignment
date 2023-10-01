@@ -4,7 +4,7 @@ How to compile and run the project
 
 ```
 .\gradlew shadowJar
-java -jar .\build\libs\CassandraProcessor.jar 127.0.0.1 9042
+java -jar .\build\libs\CassandraProcessor.jar 127.0.0.1 9042 Create
 ```
 
 ## Denormalize data files
@@ -47,50 +47,14 @@ docker run -v H:\Desktop\NUS\Y4S1\CS4224\projects\cs4224-ay2324-2-TeamH\Cassandr
 
 ## Load data into cassandraDB
 
-On docker
+On docker, load data files into cassandraDB
 
 ```
-docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.orders_by_customer(C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS) FROM 'container/dir/orders_by_customer1.csv' WITH DELIMITER=',';"
-
-docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers(C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_BALANCE, W_NAME, D_NAME) FROM 'container/dir/customer_balance.csv' WITH DELIMITER=',';"
-
 docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.district_by_warehouse (W_ID, D_ID, W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_TAX, D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_TAX, D_YTD, D_NEXT_O_ID, D_LAST_UNDELIVERED_O_D) FROM 'container/dir/district_by_warehouse.csv' WITH DELIMITER=',';"
 
-docker exec -t ecstatic_ellis cqlsh -e "CREATE TABLE CS4224H.district_by_warehouse (
-  W_ID int,
-  D_ID int,
-  W_NAME text,
-  W_STREET_1 text,
-  W_STREET_2 text,
-  W_CITY text,
-  W_STATE text,
-  W_ZIP text,
-  W_TAX decimal,
-  D_NAME text,
-  D_STREET_1 text,
-  D_STREET_2 text,
-  D_CITY text,
-  D_STATE text,
-  D_ZIP text,
-  D_TAX decimal,
-  D_YTD decimal,
-  D_NEXT_O_ID int,
-  D_LAST_UNDELIVERED_O_D int,
-  PRIMARY KEY ((W_ID, D_ID))
-);"
+docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.orders_by_customer(C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS) FROM 'container/dir/orders_by_customer1.csv' WITH DELIMITER=',';"
 
-docker exec -t ecstatic_ellis cqlsh -e "DROP TABLE IF EXISTS CS4224H.customers;
-CREATE TABLE CS4224H.customers (
-  C_W_ID int,
-	C_D_ID int,
-	C_ID int,
-	C_FIRST text,
-	C_MIDDLE text,
-	C_LAST text,
-  C_BALANCE decimal,
-  W_NAME text,
-  D_NAME text,
-	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
-);"
+docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers_by_order (C_W_ID, C_D_ID, C_ID, O_ID) FROM 'container/dir/customer_by_order.csv' WITH DELIMITER=',';"
 
+docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers(C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_DELIVERY_CNT, C_DATA, W_NAME, D_NAME, DUMMY_KEY) FROM 'container/dir/customer_balance.csv' WITH DELIMITER=',';"
 ```
