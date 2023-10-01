@@ -69,12 +69,24 @@ CREATE TABLE customers (
 	C_FIRST text,
 	C_MIDDLE text,
 	C_LAST text,
+  C_STREET_1 text,
+  C_STREET_2 text,
+  C_CITY text,
+  C_STATE text,
+  C_ZIP text,
+  C_PHONE text,
+  C_SINCE TIMESTAMP,
+  C_CREDIT text,
+  C_CREDIT_LIM decimal,
+  C_DISCOUNT decimal,
   C_BALANCE decimal,
   C_YTD_PAYMENT decimal,
+  C_PAYMENT_CNT int,
+  C_DELIVERY_CNT int,
+  C_DATA text,
   W_NAME text,
   D_NAME text,
-  C_DELIVERY_CNT int,
-	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
+	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID))
 );
 
 -- Transaction 5, 6

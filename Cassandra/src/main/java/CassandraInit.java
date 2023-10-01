@@ -64,6 +64,7 @@ public class CassandraInit {
                 while ((line = reader.readLine()) != null) {
                     // process the line
                     Transaction t = builder.build(reader, line);
+                    System.out.println(t.getClass().toString());
                     t.run(session, itemsMetadata);
                 }
                 reader.close();
