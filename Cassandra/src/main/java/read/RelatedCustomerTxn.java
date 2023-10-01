@@ -37,12 +37,13 @@ public class RelatedCustomerTxn implements Transaction {
         int c_id = Integer.parseInt(this.customer_id);
         Set<Integer> refDistItemsSet = getDistItemSet(session, w_id, d_id, c_id);
         ResultSet allCustomers = session.execute(ALL_CUSTOMERS_QUERY);
-        Set<Row> possibleCustomers = new HashSet<>();
+        Set<Integer> possibleCustomers = new HashSet<>();
         for (Row currCustRow : allCustomers) {
             int currWId = currCustRow.getInt("c_w_id");
             boolean isDesiredWarehouse = currWId != w_id;
             if (isDesiredWarehouse) {
-                possibleCustomers.add(currCustRow);
+                int currCId = currCustRow.getInt("c_id");
+                possibleCustomers.add(currCId);
             }
         }
         PreparedStatement prepareCountItemQuery = session.prepare(COUNT_ITEMS_QUERY);
@@ -50,12 +51,12 @@ public class RelatedCustomerTxn implements Transaction {
         BoundStatement countItemQuery = prepareCountItemQuery.bind(refDistItemsList);
         ResultSet itemCountRes = session.execute(countItemQuery);
         for (Row currItemCountRow : itemCountRes) {
+            int c_c_id = currItemCountRow.getInt("c_id");
             long currItemCount = currItemCountRow.getLong("ol_i_id_count");
-            if (currItemCount >= 2) {
+            if (currItemCount >= 2 && possibleCustomers.contains(c_c_id)) {
                 int c_w_id = currItemCountRow.getInt("c_w_id");
                 int c_d_id = currItemCountRow.getInt("c_d_id");
-                int c_c_id = currItemCountRow.getInt("c_id");
-                System.out.println(c_w_id + " " + c_d_id + " " + c_c_id + "  ROW: " + currItemCountRow.toString());
+                System.out.println(c_w_id + " " + c_d_id + " " + c_c_id + "  ROW: " + currItemCountRow);
             }
         }
     }
