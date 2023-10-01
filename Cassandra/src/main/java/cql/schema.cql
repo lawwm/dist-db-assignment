@@ -12,6 +12,15 @@ CREATE TYPE Item (
   OL_AMOUNT decimal
 );
 
+DROP TYPE IF EXISTS Item_Type;
+CREATE TYPE Item_Type (
+  OL_I_ID int,
+  I_NAME text,
+  OL_SUPPLY_W_ID int,
+  OL_QUANTITY int,
+  OL_AMOUNT decimal
+);
+
 -- Transaction 4, 7
 DROP TABLE IF EXISTS district_by_warehouse;
 CREATE TABLE district_by_warehouse (
@@ -107,9 +116,9 @@ CREATE TABLE orders_by_district (
   C_FIRST text,
   C_MIDDLE text,
   C_LAST text,
-  POPULAR_ITEMS list<frozen<Item>>,
-  PRIMARY KEY ((D_W_ID, D_ID), O_ID)
-);
+  POPULAR_ITEMS list<frozen<Item_Type>>,
+  PRIMARY KEY ((D_W_ID, D_ID), O_ID DESC)
+)
 
 -- Transaction 5
 DROP TABLE IF EXISTS stocks_by_warehouse;
@@ -123,6 +132,22 @@ CREATE TABLE stocks_by_warehouse (
 	PRIMARY KEY ((S_W_ID, S_I_ID))
 );
 
+<<<<<<< HEAD
+-- Transaction 7
+DROP TABLE IF EXISTS customers;
+CREATE TABLE customers (
+  C_W_ID int,
+	C_D_ID int, 
+	C_ID int,
+	C_FIRST text,
+	C_MIDDLE text,
+	C_LAST text,
+  C_BALANCE decimal,
+  W_NAME text,
+  D_NAME text,
+	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
+);
+=======
 
 DROP TABLE IF EXISTS stocks_by_warehouse;
 CREATE TABLE stocks_by_warehouse (
@@ -135,6 +160,7 @@ CREATE TABLE stocks_by_warehouse (
 	PRIMARY KEY ((S_W_ID, S_I_ID))
 );
 
+>>>>>>> origin/cassandra
 
 
 -- Transaction 8
