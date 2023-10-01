@@ -77,7 +77,7 @@ public class NewOrderTxn implements Transaction {
         // transaction 5
         // Customer identifier (W ID, D ID, C ID), lastname C LAST, credit C CREDIT,
         String getCustomer = String.format(
-                "SELECT C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
+                "SELECT C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
                 this.warehouse_id, this.district_id, this.customer_id);
         Row row = session.execute(
                 getCustomer)

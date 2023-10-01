@@ -14,7 +14,7 @@ import java.util.List;
 
 public class OrderStatusTxn implements Transaction {
   private static final String GET_ORDER_BY_CUSTOMER = "SELECT * FROM CS4224H.orders_by_customer WHERE C_W_ID = %s AND C_D_ID = %s AND C_ID = %s ORDER BY O_ID DESC LIMIT 1";
-  private static final String GET_CUSTOMER = "SELECT * FROM CS4224H.customers WHERE C_W_ID=%s AND C_D_ID=%s AND C_ID = %s;";
+  private static final String GET_CUSTOMER = "SELECT * FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID=%s AND C_D_ID=%s AND C_ID = %s;";
 
   private final String warehouse_id;
   private final String district_id;

@@ -61,10 +61,11 @@ CREATE TABLE customers_by_order (
 );
 
 -- Transaction 7
+DROP MATERIALIZED VIEW IF EXISTS CS4224H.customers_by_balance;
 DROP TABLE IF EXISTS customers;
 CREATE TABLE customers (
   C_W_ID int,
-	C_D_ID int, 
+	C_D_ID int,
 	C_ID int,
 	C_FIRST text,
 	C_MIDDLE text,
@@ -86,8 +87,15 @@ CREATE TABLE customers (
   C_DATA text,
   W_NAME text,
   D_NAME text,
-	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID))
+  DUMMY_KEY int,
+	PRIMARY KEY ((DUMMY_KEY, C_W_ID, C_D_ID), C_ID)
 );
+
+CREATE MATERIALIZED VIEW CS4224H.customers_by_balance 
+AS SELECT C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_BALANCE, W_NAME, D_NAME, DUMMY_KEY 
+FROM CS4224H.customers 
+WHERE C_W_ID IS NOT NULL AND C_D_ID IS NOT NULL AND C_ID IS NOT NULL AND C_BALANCE IS NOT NULL AND DUMMY_KEY IS NOT NULL 
+PRIMARY KEY ((DUMMY_KEY), C_BALANCE, C_W_ID, C_D_ID, C_ID);
 
 -- Transaction 5, 6
 DROP TABLE IF EXISTS orders_by_district;

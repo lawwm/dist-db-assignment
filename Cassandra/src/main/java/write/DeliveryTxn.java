@@ -64,7 +64,7 @@ public class DeliveryTxn implements Transaction {
       row = result.one();
 
       if (row == null) {
-        System.out.printf("No customer %d for district %d and warehouse %d\n", order_id, district_id,
+        System.out.printf("No customer %d for district %d and warehouse %s\n", order_id, district_id,
             this.warehouse_id);
         continue;
       }
@@ -91,7 +91,7 @@ public class DeliveryTxn implements Transaction {
       int c_delivery_cnt = row.getInt("C_DELIVERY_CNT") + 1;
       // Update the customers table
       String updateCustomer = String.format(
-          "UPDATE CS4224H.customers SET C_BALANCE = %f, C_DELIVERY_CNT = %d WHERE C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
+          "UPDATE CS4224H.customers SET C_BALANCE = %f, C_DELIVERY_CNT = %d WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
           amount, c_delivery_cnt, this.warehouse_id, district_id, customer_id);
 
       session.execute(updateCustomer);
