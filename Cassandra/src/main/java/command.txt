@@ -1,2 +1,2 @@
-COPY cs4224h.customer_denorm (C_W_ID, C_D_ID, C_ID) FROM './project_files/data_files/customer_denorm.csv' WITH DELIMITER = ',';
-COPY cs4224h.customer_item_denorm (C_W_ID, C_D_ID, C_ID, OL_I_ID) FROM './project_files/data_files/customer_item_denorm.csv' WITH DELIMITER = ',';
+COPY cs4224h.customer_denorm (C_W_ID, C_D_ID, C_ID) FROM './scripts/data/customer_denorm.csv' WITH DELIMITER = ',';
+COPY cs4224h.customer_item_denorm (C_W_ID, C_D_ID, C_ID, OL_I_ID) FROM './scripts/data/customer_item_denorm.csv' WITH DELIMITER = ',';
