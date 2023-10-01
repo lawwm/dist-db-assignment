@@ -1,8 +1,3 @@
--- Creates the keyspace.
-DROP KEYSPACE IF EXISTS CS4224H;
-CREATE KEYSPACE IF NOT EXISTS CS4224H WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 3};
-USE CS4224H;
-
 -- Creates the tables.
 DROP TYPE IF EXISTS Item;
 CREATE TYPE Item (
@@ -100,10 +95,10 @@ CREATE TABLE customers (
 	PRIMARY KEY ((DUMMY_KEY, C_W_ID, C_D_ID), C_ID)
 );
 
-CREATE MATERIALIZED VIEW CS4224H.customers_by_balance 
-AS SELECT C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_BALANCE, W_NAME, D_NAME, DUMMY_KEY 
-FROM CS4224H.customers 
-WHERE C_W_ID IS NOT NULL AND C_D_ID IS NOT NULL AND C_ID IS NOT NULL AND C_BALANCE IS NOT NULL AND DUMMY_KEY IS NOT NULL 
+CREATE MATERIALIZED VIEW CS4224H.customers_by_balance
+AS SELECT C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_BALANCE, W_NAME, D_NAME, DUMMY_KEY
+FROM customers
+WHERE C_W_ID IS NOT NULL AND C_D_ID IS NOT NULL AND C_ID IS NOT NULL AND C_BALANCE IS NOT NULL AND DUMMY_KEY IS NOT NULL
 PRIMARY KEY ((DUMMY_KEY), C_BALANCE, C_W_ID, C_D_ID, C_ID);
 
 -- Transaction 5, 6
@@ -118,7 +113,7 @@ CREATE TABLE orders_by_district (
   C_LAST text,
   POPULAR_ITEMS list<frozen<Item_Type>>,
   PRIMARY KEY ((D_W_ID, D_ID), O_ID DESC)
-)
+);
 
 -- Transaction 5
 DROP TABLE IF EXISTS stocks_by_warehouse;
@@ -132,7 +127,6 @@ CREATE TABLE stocks_by_warehouse (
 	PRIMARY KEY ((S_W_ID, S_I_ID))
 );
 
-<<<<<<< HEAD
 -- Transaction 7
 DROP TABLE IF EXISTS customers;
 CREATE TABLE customers (
@@ -147,27 +141,21 @@ CREATE TABLE customers (
   D_NAME text,
 	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
 );
-=======
-
-DROP TABLE IF EXISTS stocks_by_warehouse;
-CREATE TABLE stocks_by_warehouse (
-	S_W_ID int,
-	S_I_ID int,
-	S_QUANTITY decimal, 
-  S_YTD decimal,
-  S_ORDER_CNT int,
-  S_REMOTE_CNT int,
-	PRIMARY KEY ((S_W_ID, S_I_ID))
-);
-
->>>>>>> origin/cassandra
-
 
 -- Transaction 8
-DROP TABLE IF EXISTS customers_by_item;
-CREATE TABLE customers_by_item (
-  I_ID int,
-	C_ID int,
-  W_ID int,
-	PRIMARY KEY ((I_ID))
+DROP TABLE IF EXISTS customer_denorm;
+CREATE TABLE customer_denorm (
+    C_W_ID int,
+    C_D_ID int,
+    C_ID int,
+    PRIMARY KEY (C_W_ID, C_D_ID, C_ID)
+);
+
+DROP TABLE IF EXISTS customer_item_denorm;
+CREATE TABLE customer_item_denorm (
+    C_W_ID int,
+    C_D_ID int,
+    C_ID int,
+    OL_I_ID int,
+    PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), OL_I_ID)
 );
