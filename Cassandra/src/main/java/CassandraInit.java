@@ -11,47 +11,56 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 
 import table.Tables;
+import utils.ItemsMetadata;
 import utils.Transaction;
 import utils.TransactionBuilder;
 
 public class CassandraInit {
     private static final String KEYSPACE_REF = "CS4224H";
+    private static final String SCHEMA_FILE_PATH = "./src/main/java/cql/schema.cql";
+    private static final String ITEMS_METADATA_PATH = "./scripts/data/item.csv";
+
     private static final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
     private static final String TRANSACTION_STATISTICS_TEMPLATE = "Total Transactions: %d, Total Elapsed Time (s): %f, " +
             "Transaction Throughput: %.3f, Average Latency (ms): %.3f, Median Latency (ms): %d, " +
             "95 percentile latency (ms): %d, 99 percentile latency (ms): %d \n";
 
-    private static final String INVALID_ARGUMENTS_ERROR_MESSAGE = "Arguments Invalid. Enter: Host Port";
+    private static final String INVALID_ARGUMENTS_ERROR_MESSAGE = "Arguments Invalid. Enter: Host Port Command ClientPath";
 
     private static final String SESSION_CONN_SUCC_MESSAGE = "Connected to session";
     private static final String CLEARED_DB_SUCC_MESSAGE = "Cleared DB";
 
+    private static final String[] commands = { "Create", "Run" };
+
     public static void main(String[] args) {
-        boolean hasNecessaryArgs = args.length >= 2;
+        boolean hasNecessaryArgs = args.length >= 4;
         if (!hasNecessaryArgs) {
             System.out.println(INVALID_ARGUMENTS_ERROR_MESSAGE);
             return;
         }
         try {
+            ItemsMetadata itemsMetadata = new ItemsMetadata();
+            itemsMetadata.populate(ITEMS_METADATA_PATH);
             String host = args[0];
             int port = Integer.parseInt(args[1]);
-            System.out.println("Host: " + host + " Port: " + args[1]);
+            String cmd = args[2];
+            String clientPath = args[3];
+            System.out.println(clientPath);
             Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
             Session session = cluster.connect();
             System.out.println(SESSION_CONN_SUCC_MESSAGE);
-            session = preprocess(session, cluster);
-            //session = cluster.connect(KEYSPACE_REF);
-            processTransactions(session);
-            session.close();
-            session = cluster.connect();
-            clearDB(session);
+            if (cmd.equals(commands[0])) {
+                session = preprocess(session, cluster);
+                processTransactions(session, itemsMetadata, clientPath);
+            } else if (cmd.equals(commands[1])) {
+                session = cluster.connect(KEYSPACE_REF);
+                processTransactions(session, itemsMetadata, clientPath);
+            }
             session.close();
             cluster.close();
         } catch (Exception e) {
-            System.out.println(e);
-            return;
+            e.printStackTrace();
         }
-
     }
 
     /**
@@ -66,7 +75,7 @@ public class CassandraInit {
         createKeyspace(session);
         session = cluster.connect(KEYSPACE_REF);
         Tables table = new Tables();
-        table.runCqlScript(session, "./schema.cql");
+        table.runCqlScript(session, SCHEMA_FILE_PATH);
         execute();
         session.execute(CREATE_TEMP_ITEM_ID_INDEX_QUERY);
         return session;
@@ -77,8 +86,8 @@ public class CassandraInit {
      * @param session Session to execute the transaction in
      * @throws IOException
      */
-    private static void processTransactions(Session session) throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader("./project_files/xact_files/0.txt"));
+    private static void processTransactions(Session session, ItemsMetadata metadata, String clientPath) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(clientPath));
         TransactionBuilder builder = new TransactionBuilder();
         String line;
         long numTransaction = 0;
@@ -92,13 +101,14 @@ public class CassandraInit {
             }
             System.out.println(t.getClass().getName());
             long transStartTime = System.currentTimeMillis();
-            t.run(session);
+            t.run(session, metadata);
             long transEndTime = System.currentTimeMillis();
             long currLatency = transEndTime - transStartTime;
             latencies.add(currLatency);
             numTransaction++;
         }
         long endTime = System.currentTimeMillis();
+        reader.close();
         computeStatistics(numTransaction, latencies, startTime, endTime);
     }
 
@@ -176,7 +186,7 @@ public class CassandraInit {
         long ninetyFifthPercentile = latencies.get(ninetyFifthPercentileIndex - 1);
         int ninetyNinePercentileIndex = (int) Math.ceil(0.99 * numLatencies);
         long ninetyNinePercentile = latencies.get(ninetyNinePercentileIndex - 1);
-        long median = 0;
+        long median;
         int middleIndex = numLatencies / 2;
         boolean isEvenMiddleIndex = middleIndex % 2 == 0;
         if (isEvenMiddleIndex) {
