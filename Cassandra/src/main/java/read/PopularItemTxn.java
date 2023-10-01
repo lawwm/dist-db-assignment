@@ -1,5 +1,6 @@
 package read;
 
+import utils.ItemsMetadata;
 import utils.Transaction;
 
 import com.datastax.driver.core.Session;
@@ -16,7 +17,7 @@ public class PopularItemTxn implements Transaction {
     this.last_l = Integer.parseInt(last_l);
   }
 
-  public void run(Session session) {
+  public void run(Session session, ItemsMetadata itemsMetadata) {
 
   }
 }

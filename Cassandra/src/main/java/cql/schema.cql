@@ -12,7 +12,32 @@ CREATE TYPE Item (
   OL_AMOUNT decimal
 );
 
--- Transaction 4, 8
+-- Transaction 4, 7
+DROP TABLE IF EXISTS district_by_warehouse;
+CREATE TABLE district_by_warehouse (
+  W_ID int,
+  D_ID int,
+  W_NAME text,
+  W_STREET_1 text,
+  W_STREET_2 text,
+  W_CITY text,
+  W_STATE text,
+  W_ZIP text,
+  W_TAX decimal,
+  D_NAME text,
+  D_STREET_1 text,
+  D_STREET_2 text,
+  D_CITY text,
+  D_STATE text,
+  D_ZIP text,
+  D_TAX decimal,
+  D_YTD decimal,
+  D_NEXT_O_ID int,
+  D_LAST_UNDELIVERED_O_D int,
+  PRIMARY KEY ((W_ID, D_ID))
+);
+
+
 DROP TABLE IF EXISTS orders_by_customer;
 CREATE TABLE orders_by_customer (
 	C_W_ID int,
@@ -25,6 +50,52 @@ CREATE TABLE orders_by_customer (
   ITEMS list<frozen<Item>>,
   PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), O_ID)
 );
+
+DROP TABLE IF EXISTS customers_by_order;
+CREATE TABLE customers_by_order (
+  C_W_ID int,
+  C_D_ID int, 
+  C_ID int,
+  O_ID int,
+  PRIMARY KEY ((C_W_ID, C_D_ID, O_ID))
+);
+
+-- Transaction 7
+DROP MATERIALIZED VIEW IF EXISTS CS4224H.customers_by_balance;
+DROP TABLE IF EXISTS customers;
+CREATE TABLE customers (
+  C_W_ID int,
+	C_D_ID int,
+	C_ID int,
+	C_FIRST text,
+	C_MIDDLE text,
+	C_LAST text,
+  C_STREET_1 text,
+  C_STREET_2 text,
+  C_CITY text,
+  C_STATE text,
+  C_ZIP text,
+  C_PHONE text,
+  C_SINCE TIMESTAMP,
+  C_CREDIT text,
+  C_CREDIT_LIM decimal,
+  C_DISCOUNT decimal,
+  C_BALANCE decimal,
+  C_YTD_PAYMENT decimal,
+  C_PAYMENT_CNT int,
+  C_DELIVERY_CNT int,
+  C_DATA text,
+  W_NAME text,
+  D_NAME text,
+  DUMMY_KEY int,
+	PRIMARY KEY ((DUMMY_KEY, C_W_ID, C_D_ID), C_ID)
+);
+
+CREATE MATERIALIZED VIEW CS4224H.customers_by_balance 
+AS SELECT C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_BALANCE, W_NAME, D_NAME, DUMMY_KEY 
+FROM CS4224H.customers 
+WHERE C_W_ID IS NOT NULL AND C_D_ID IS NOT NULL AND C_ID IS NOT NULL AND C_BALANCE IS NOT NULL AND DUMMY_KEY IS NOT NULL 
+PRIMARY KEY ((DUMMY_KEY), C_BALANCE, C_W_ID, C_D_ID, C_ID);
 
 -- Transaction 5, 6
 DROP TABLE IF EXISTS orders_by_district;
@@ -64,18 +135,6 @@ CREATE TABLE stocks_by_warehouse (
 	PRIMARY KEY ((S_W_ID, S_I_ID))
 );
 
--- Transaction 7
-DROP TABLE IF EXISTS customers;
-CREATE TABLE customers (
-	C_ID int,
-	C_FIRST text,
-	C_MIDDLE text,
-	C_LAST text,
-  C_BALANCE decimal,
-  W_NAME text,
-  D_NAME text,
-	PRIMARY KEY ((C_FIRST, C_MIDDLE, C_LAST), C_BALANCE)
-);
 
 
 -- Transaction 8
@@ -85,19 +144,4 @@ CREATE TABLE customers_by_item (
 	C_ID int,
   W_ID int,
 	PRIMARY KEY ((I_ID))
-);
-
-INSERT INTO orders_by_customer (C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS)
-VALUES (
-  1,  -- C_W_ID value
-  1,  -- C_D_ID value
-  1,  -- C_ID value
-  2001,  -- O_ID value
-  '2023-09-13 12:00:00',  -- O_ENTRY_D value
-  101,  -- O_CARRIER_ID value
-  '2023-09-14 14:30:00',  -- OL_DELIVERY_D value
-  [   -- Start of ITEMS list
-    {OL_I_ID: 10, OL_SUPPLY_W_ID: 2, OL_QUANTITY: 5, OL_AMOUNT: 50.75},
-    {OL_I_ID: 11, OL_SUPPLY_W_ID: 3, OL_QUANTITY: 3, OL_AMOUNT: 30.50}
-  ]   -- End of ITEMS list
 );
