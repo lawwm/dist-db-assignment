@@ -12,15 +12,17 @@ echo "Running job!"
 echo "We are running on $(hostname)"
 echo "Job started at $(date)"
 # Actual "job"
-host="127.0.0.1"
-port="1234"
-command="Create"
-xactFolder="/home/stuproj/cs4224h/project_files/xact_files"
-cassandraJar="CassandraProcessor.jar"
+cassandra_config="conf/cassandra.yaml"
 
 for i in {0..4}; do
   srun --nodes=1 --ntasks=1 -r $i slurm_batch.sh
 done
+
+host=$(grep 'listen_address' "$cassandra_config" | awk '{print $2}')
+port=$(grep 'native_transport_port' "$cassandra_config" | awk '{print $2}')
+command="Create"
+xactFolder="/home/stuproj/cs4224h/project_files/xact_files"
+cassandraJar="CassandraProcessor.jar"
 
 for i in {0..19}; do
   selected_node=$(( i % 5 ))
