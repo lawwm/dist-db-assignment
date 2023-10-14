@@ -1,3 +1,8 @@
+CREATE KEYSPACE IF NOT EXISTS CS4224H
+WITH replication = {'class': 'NetworkTopologyStrategy', 'replication_factor': 3};
+
+USE CS4224H;
+
 -- Creates the tables.
 DROP TYPE IF EXISTS Item;
 CREATE TYPE Item (
@@ -107,13 +112,13 @@ CREATE TABLE orders_by_district (
 	D_W_ID int,
 	D_ID int,
 	O_ID int,
-  O_ENTRY_D int,
+  O_ENTRY_D TIMESTAMP,
   C_FIRST text,
   C_MIDDLE text,
   C_LAST text,
   POPULAR_ITEMS list<frozen<Item_Type>>,
-  PRIMARY KEY ((D_W_ID, D_ID), O_ID DESC)
-);
+  PRIMARY KEY ((D_W_ID, D_ID), O_ID)
+) WITH CLUSTERING ORDER BY (O_ID DESC);
 
 -- Transaction 5
 DROP TABLE IF EXISTS stocks_by_warehouse;
@@ -125,21 +130,6 @@ CREATE TABLE stocks_by_warehouse (
   S_ORDER_CNT int,
   S_REMOTE_CNT int,
 	PRIMARY KEY ((S_W_ID, S_I_ID))
-);
-
--- Transaction 7
-DROP TABLE IF EXISTS customers;
-CREATE TABLE customers (
-  C_W_ID int,
-	C_D_ID int, 
-	C_ID int,
-	C_FIRST text,
-	C_MIDDLE text,
-	C_LAST text,
-  C_BALANCE decimal,
-  W_NAME text,
-  D_NAME text,
-	PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), C_BALANCE)
 );
 
 -- Transaction 8
@@ -159,3 +149,24 @@ CREATE TABLE customer_item_denorm (
     OL_I_ID int,
     PRIMARY KEY ((C_W_ID, C_D_ID, C_ID), OL_I_ID)
 );
+
+
+-- Populate data
+
+COPY CS4224H.district_by_warehouse (W_ID, D_ID, W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_TAX, D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_TAX, D_YTD, D_NEXT_O_ID, D_LAST_UNDELIVERED_O_D) 
+FROM '../scripts/data/district_by_warehouse.csv' WITH DELIMITER=',';
+
+COPY CS4224H.orders_by_customer(C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS) 
+FROM '../scripts/data/orders_by_customer.csv' WITH DELIMITER=',' AND CHUNKSIZE = 100 AND NUMPROCESSES=4;
+
+COPY CS4224H.customers_by_order (C_W_ID, C_D_ID, C_ID, O_ID) 
+FROM '../scripts/data/customer_by_order.csv' WITH DELIMITER=',';
+
+COPY CS4224H.customers(C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_DELIVERY_CNT, C_DATA, W_NAME, D_NAME, DUMMY_KEY) 
+FROM '../scripts/data/customer_balance.csv' WITH DELIMITER=',';
+
+COPY CS4224H.orders_by_district(D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS)
+FROM '../scripts/data/orders_by_district.csv' WITH DELIMITER=',';
+
+COPY CS4224H.customer_item_denorm(C_W_ID, C_D_ID, C_ID, OL_I_ID)
+FROM '../scripts/data/customer_item_denorm.csv' WITH DELIMITER=',';
