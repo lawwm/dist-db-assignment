@@ -54,8 +54,10 @@ public class NewOrderTxn implements Transaction {
         session.execute(updateStatement);
         // transaction 4
         List<UDTValue> udtItems = new ArrayList<>();
-
         UserType itemType = session.getCluster().getMetadata().getKeyspace("CS4224H").getUserType("Item");
+
+        List<UDTValue> udtItem_Type_list = new ArrayList<>();
+        UserType Item_Type_type = session.getCluster().getMetadata().getKeyspace("CS4224H").getUserType("Item_Type");
         double totalAmount = 0;
         for (int i = 0; i < items.length; i++) {
             totalAmount += Integer.parseInt(items[i][0]);
@@ -65,6 +67,14 @@ public class NewOrderTxn implements Transaction {
                     .setInt("OL_QUANTITY", Integer.parseInt(items[i][2]))
                     .setDecimal("OL_AMOUNT", itemsMetadata.getItemPrice(Integer.parseInt(items[i][0])));
             udtItems.add(item);
+
+            UDTValue item_type = Item_Type_type.newValue()
+                    .setInt("OL_I_ID", Integer.parseInt(items[i][0]))
+                    .setString("I_NAME", itemsMetadata.getItemName(Integer.parseInt(items[i][0])))
+                    .setInt("OL_SUPPLY_W_ID", Integer.parseInt(items[i][1]))
+                    .setInt("OL_QUANTITY", Integer.parseInt(items[i][2]))
+                    .setDecimal("OL_AMOUNT", itemsMetadata.getItemPrice(Integer.parseInt(items[i][0])));
+            udtItem_Type_list.add(item_type);
         }
 
         PreparedStatement ps = session.prepare(
@@ -77,12 +87,12 @@ public class NewOrderTxn implements Transaction {
         BoundStatement bound = ps.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
                 Integer.parseInt(customer_id), order_id, currDate, null, null, udtItems);
 
-        session.execute(bound);
+//        session.execute(bound);
 
-        // transaction 5
+
         // Customer identifier (W ID, D ID, C ID), lastname C LAST, credit C CREDIT,
         String getCustomer = String.format(
-                "SELECT C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
+                "SELECT C_FIRST, C_MIDDLE, C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
                 this.warehouse_id, this.district_id, this.customer_id);
         Row row = session.execute(
                         getCustomer)
@@ -92,6 +102,13 @@ public class NewOrderTxn implements Transaction {
                 this.warehouse_id, this.district_id, this.customer_id, row.getString("C_LAST"),
                 row.getString("C_CREDIT"),
                 row.getDecimal("C_DISCOUNT").doubleValue());
+
+        // transaction 5
+        PreparedStatement ps_tx5 = session.prepare(
+                "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
+                order_id, currDate, row.getString("C_FIRST"), row.getString("C_MIDDLE"), row.getString("C_LAST"), udtItem_Type_list);
+        session.execute(bound_tx5);
 
         // 2. Warehouse tax rate W TAX, District tax rate D TAX
         row = session.execute(

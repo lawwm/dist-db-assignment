@@ -21,7 +21,7 @@ import utils.TransactionBuilder;
 public class CassandraInit {
     private static final String KEYSPACE_REF = "CS4224H";
     private static final String SCHEMA_FILE_PATH = "schema.cql";
-    private static final String ITEMS_METADATA_PATH = "./scripts/data/item.csv";
+    private static final String ITEMS_METADATA_PATH = "project_files/data_files/item.csv";
 
     private static final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
     private static final String TRANSACTION_STATISTICS_TEMPLATE = "Total Transactions: %d, Total Elapsed Time (s): %.2f, " +

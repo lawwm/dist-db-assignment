@@ -4,6 +4,7 @@ import utils.ItemsMetadata;
 import utils.Transaction;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 
@@ -13,16 +14,16 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.UDTValue;
 
 public class PopularItemTxn implements Transaction {
-    private static final String GET_ORDER_BY_DISTRICT = "SELECT POPULAR_ITEMS FROM orders_by_district WHERE D_W_ID = %d AND D_ID = %d LIMIT %d";
+    private static final String GET_ORDER_BY_DISTRICT = "SELECT * FROM orders_by_district WHERE D_W_ID = %s AND D_ID = %s LIMIT %s";
 
-    private final int warehouse_id;
-    private final int district_id;
-    private final int last_l;
+    private final String warehouse_id;
+    private final String district_id;
+    private final String last_l;
 
     public PopularItemTxn(String warehouse_id, String district_id, String last_l) {
-        this.warehouse_id = Integer.parseInt(warehouse_id);
-        this.district_id = Integer.parseInt(district_id);
-        this.last_l = Integer.parseInt(last_l);
+        this.warehouse_id = warehouse_id;
+        this.district_id = district_id;
+        this.last_l = last_l;
     }
 
     public void run(Session session, ItemsMetadata itemsMetadata) {
@@ -32,19 +33,17 @@ public class PopularItemTxn implements Transaction {
 
         ResultSet rs = session.execute(query);
 
-        String output = String.format("(%d, %d)%n%d%n", this.warehouse_id, this.district_id, this.last_l);
+        String output = String.format("(%s, %s)%n%s%n", this.warehouse_id, this.district_id, this.last_l);
 
         // Store all popular items and their counts
         HashMap<String, Integer> popular_item_hm = new HashMap<>();
-
         // Find popular items for each order
         for (Row row : rs) {
             int o_id = row.getInt("O_ID");
-            int o_entry_d = row.getInt("O_ENTRY_D");
+            Date o_entry_d = row.getTimestamp("O_ENTRY_D");
             String c_first = row.getString("C_FIRST");
             String c_middle = row.getString("C_MIDDLE");
             String c_last = row.getString("C_LAST");
-
             List<UDTValue> itemList = row.getList("POPULAR_ITEMS", UDTValue.class);
 
             // Keep track of total qty per item in current order
@@ -54,7 +53,7 @@ public class PopularItemTxn implements Transaction {
             int highestQty = 0;
             List<String> tempItemList = new ArrayList<>();
 
-            for (UDTValue udt : itemList) {
+            for (var udt : itemList) {
                 String i_name = udt.getString("I_NAME");
                 int ol_qty = udt.getInt("OL_QUANTITY");
 
@@ -71,7 +70,7 @@ public class PopularItemTxn implements Transaction {
                 }
             }
 
-            String a = String.format("%d %d%n", o_id, o_entry_d);
+            String a = String.format("%d %s%n", o_id, o_entry_d.toString());
             String b = String.format("(%s %s %s)%n", c_first, c_middle, c_last);
             String c = "";
 
@@ -87,8 +86,8 @@ public class PopularItemTxn implements Transaction {
         String d = "";
 
         for (String s : popular_item_hm.keySet()) {
-            double percentage = (double) popular_item_hm.get(s) / this.last_l * 100;
-            d += s + "" + String.format("%.2f%%", percentage) + "/n";
+            double percentage = (double) popular_item_hm.get(s) / Integer.parseInt(this.last_l) * 100;
+            d += s + " " + String.format("%.2f%%", percentage) + "\n";
 
         }
 
