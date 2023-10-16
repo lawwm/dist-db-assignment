@@ -3,6 +3,7 @@ package read;
 import utils.ItemsMetadata;
 import utils.Transaction;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.ArrayList;
@@ -15,34 +16,32 @@ import com.datastax.driver.core.UDTValue;
 
 public class StockLevelTxn implements Transaction {
 
-    private static final String GET_ORDER_BY_DISTRICT = "SELECT POPULAR_ITEMS FROM orders_by_district WHERE D_W_ID = %d AND D_ID = %d LIMIT %d";
-    private static final String GET_STOCKS_BY_WAREHOUSE = "SELECT S_QUANTITY FROM stocks_by_warehouse WHERE S_W_ID = %d AND S_I_ID = %d";
+    private static final String GET_ORDER_BY_DISTRICT = "SELECT POPULAR_ITEMS FROM orders_by_district WHERE D_W_ID = %s AND D_ID = %s LIMIT %s";
+    private static final String GET_STOCKS_BY_WAREHOUSE = "SELECT S_QUANTITY FROM stocks_by_warehouse WHERE S_W_ID = %s AND S_I_ID = %s";
 
-    private final int warehouse_id;
-    private final int district_id;
-    private final int stock_level;
-    private final int last_l;
+    private final String warehouse_id;
+    private final String district_id;
+    private final String stock_level;
+    private final String last_l;
 
     public StockLevelTxn(String warehouse_id, String district_id, String stock_level, String last_l) {
-        this.warehouse_id = Integer.parseInt(warehouse_id);
-        this.district_id = Integer.parseInt(district_id);
-        this.stock_level = Integer.parseInt(stock_level);
-        this.last_l = Integer.parseInt(last_l);
+        this.warehouse_id = warehouse_id;
+        this.district_id = district_id;
+        this.stock_level = stock_level;
+        this.last_l = last_l;
     }
 
     public void run(Session session, ItemsMetadata itemsMetadata) {
         int total_number_of_items = 0;
-        String output = "Total number of items ";
+        String output = "Total number of items below threshold: ";
 
         String query = String.format(GET_ORDER_BY_DISTRICT, this.warehouse_id,
                 this.district_id, this.last_l);
 
         ResultSet rs = session.execute(query);
 
-        // Stores ol_i_id, ol_supply_w_id
-        Set<List<Integer>> items_below_stock_level = new HashSet<>();
+        Set<Integer> items_below_stock_level = new HashSet<>();
 
-        // Retrieve (s_w_id, ol_i_id) from all L orders
         for (Row row : rs) {
             List<UDTValue> itemList = row.getList("POPULAR_ITEMS", UDTValue.class);
 
@@ -51,30 +50,35 @@ public class StockLevelTxn implements Transaction {
                 int ol_supply_w_id = udt.getInt("OL_SUPPLY_W_ID");
 
                 // If supply_w_id is same as warehouse_id?
-                if (ol_supply_w_id == this.warehouse_id) {
-                    List<Integer> item = new ArrayList<>();
-                    item.add(ol_i_id);
-                    item.add(ol_supply_w_id);
-                    items_below_stock_level.add(item);
+                if (ol_supply_w_id == Integer.parseInt(this.warehouse_id)) {
+                    items_below_stock_level.add(ol_i_id);
                 }
             }
         }
 
         // Process each item in set
-        for (List<Integer> i : items_below_stock_level) {
-            int ol_i_id = i.get(0);
-            int ol_supply_w_id = i.get(1);
-            String query_2 = String.format(GET_STOCKS_BY_WAREHOUSE, ol_supply_w_id, ol_i_id);
-            ResultSet rs_q2 = session.execute(query_2);
+        for (Integer i : items_below_stock_level) {
+//            int ol_i_id = i;
+//            String query_2 = String.format(GET_STOCKS_BY_WAREHOUSE, this.warehouse_id, ol_i_id);
+//            ResultSet rs_q2 = session.execute(query_2);
+//
+//            // Based on schema, it should return one row
+//            for (Row row_2 : rs_q2) {
+//                int s_qty = row_2.getDecimal("S_QUANTITY").intValue();
+//                if (s_qty < Integer.parseInt(this.stock_level)) {
+//                    total_number_of_items += 1;
+//                }
+//            }
 
-            // Based on schema, it should return one row
-            for (Row row_2 : rs_q2) {
-                int s_qty = row_2.getInt("S_QUANTITY");
+            int ol_i_id = i;
+            String query_2 = String.format(GET_STOCKS_BY_WAREHOUSE, this.warehouse_id, ol_i_id);
+            Row row_2 = session.execute(query_2).one();
 
-                if (s_qty < stock_level) {
-                    total_number_of_items += 1;
-                }
+            int s_qty = row_2.getDecimal("S_QUANTITY").intValue();
+            if (s_qty < Integer.parseInt(this.stock_level)) {
+                total_number_of_items += 1;
             }
+
         }
 
         output += total_number_of_items;

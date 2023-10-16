@@ -33,7 +33,8 @@ public class PopularItemTxn implements Transaction {
 
         ResultSet rs = session.execute(query);
 
-        String output = String.format("(%s, %s)%n%s%n", this.warehouse_id, this.district_id, this.last_l);
+        System.out.printf("1. District identifier %s, %s\n", this.warehouse_id, this.district_id);
+        System.out.printf("2. Number of last orders to be examined %s\n", this.last_l);
 
         // Store all popular items and their counts
         HashMap<String, Integer> popular_item_hm = new HashMap<>();
@@ -70,28 +71,25 @@ public class PopularItemTxn implements Transaction {
                 }
             }
 
-            String a = String.format("%d %s%n", o_id, o_entry_d.toString());
-            String b = String.format("(%s %s %s)%n", c_first, c_middle, c_last);
+            System.out.printf("3. Order number %d and time %s\n", o_id, o_entry_d.toString());
+            System.out.printf("   Customer name %s %s %s\n", c_first, c_middle, c_last);
             String c = "";
 
             // Updates hashmap and update output
             for (String s : tempItemList) {
                 popular_item_hm.compute(s, (key, oldValue) -> (oldValue == null) ? 1 : oldValue + 1);
-                c += s + "\n" + hm.get(s) + "\n";
+                c += "   Item name: " + s + ", Quantity: " + hm.get(s) + "\n";
             }
 
-            output += a + b + c;
+            System.out.printf(c);
         }
+
 
         String d = "";
-
         for (String s : popular_item_hm.keySet()) {
             double percentage = (double) popular_item_hm.get(s) / Integer.parseInt(this.last_l) * 100;
-            d += s + " " + String.format("%.2f%%", percentage) + "\n";
-
+            d += "   Item name: " + s + ", orders containing item " + String.format("%.2f%%", percentage) + "\n";
         }
-
-        output += d;
-        System.out.println(output);
+        System.out.printf("4. Distinct items %n%s", d);
     }
 }

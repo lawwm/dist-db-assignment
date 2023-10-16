@@ -86,8 +86,7 @@ public class NewOrderTxn implements Transaction {
         Date currDate = new Date();
         BoundStatement bound = ps.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
                 Integer.parseInt(customer_id), order_id, currDate, null, null, udtItems);
-
-//        session.execute(bound);
+        session.execute(bound);
 
 
         // Customer identifier (W ID, D ID, C ID), lastname C LAST, credit C CREDIT,
