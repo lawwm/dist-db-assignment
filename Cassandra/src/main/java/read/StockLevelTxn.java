@@ -33,7 +33,7 @@ public class StockLevelTxn implements Transaction {
 
     public void run(Session session, ItemsMetadata itemsMetadata) {
         int total_number_of_items = 0;
-        String output = "Total number of items below threshold: ";
+        String output = String.format("Total number of items below threshold of %s: ", this.stock_level);
 
         String query = String.format(GET_ORDER_BY_DISTRICT, this.warehouse_id,
                 this.district_id, this.last_l);
@@ -58,18 +58,6 @@ public class StockLevelTxn implements Transaction {
 
         // Process each item in set
         for (Integer i : items_below_stock_level) {
-//            int ol_i_id = i;
-//            String query_2 = String.format(GET_STOCKS_BY_WAREHOUSE, this.warehouse_id, ol_i_id);
-//            ResultSet rs_q2 = session.execute(query_2);
-//
-//            // Based on schema, it should return one row
-//            for (Row row_2 : rs_q2) {
-//                int s_qty = row_2.getDecimal("S_QUANTITY").intValue();
-//                if (s_qty < Integer.parseInt(this.stock_level)) {
-//                    total_number_of_items += 1;
-//                }
-//            }
-
             int ol_i_id = i;
             String query_2 = String.format(GET_STOCKS_BY_WAREHOUSE, this.warehouse_id, ol_i_id);
             Row row_2 = session.execute(query_2).one();
@@ -78,11 +66,10 @@ public class StockLevelTxn implements Transaction {
             if (s_qty < Integer.parseInt(this.stock_level)) {
                 total_number_of_items += 1;
             }
-
         }
 
         output += total_number_of_items;
 
-        System.out.println(output);
+        System.out.printf(output + "\n");
     }
 }
