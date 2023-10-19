@@ -1,5 +1,6 @@
 package write;
 
+import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -25,6 +26,7 @@ public class NewOrderTxn implements Transaction {
     private final String[][] items;
     private final String GET_NEXT_ORDER_ID = "select d_next_o_id from CS4224H.district_by_warehouse where w_id = %s and d_id = %s;";
     private final String UPDATE_NEXT_ORDER_ID = "UPDATE CS4224H.district_by_warehouse SET D_NEXT_O_ID = %s WHERE W_ID = %s AND D_ID = %s;";
+
     private final String UPDATE_CUSTOMER_DENORM_QUERY = "Insert into customer_denorm " +
             "(C_W_ID, C_D_ID, C_ID) values (?, ?, ?);";
     private final String UPDATE_CUSTOMER_ITEM_DENORM_QUERY = "Insert into customer_item_denorm " +
@@ -52,19 +54,69 @@ public class NewOrderTxn implements Transaction {
         Statement updateStatement = new SimpleStatement(
                 String.format(UPDATE_NEXT_ORDER_ID, order_id + 1, this.warehouse_id, this.district_id));
         session.execute(updateStatement);
+
         // transaction 4
         List<UDTValue> udtItems = new ArrayList<>();
-
         UserType itemType = session.getCluster().getMetadata().getKeyspace("CS4224H").getUserType("Item");
+
+        List<UDTValue> udtItem_Type_list = new ArrayList<>();
+        UserType Item_Type_type = session.getCluster().getMetadata().getKeyspace("CS4224H").getUserType("Item_Type");
         double totalAmount = 0;
         for (int i = 0; i < items.length; i++) {
+            int ol_i_id =  Integer.parseInt(items[i][0]);
+            int ol_supply_w_id = Integer.parseInt(items[i][1]);
+            int ol_quantity =  Integer.parseInt(items[i][2]);
+            BigDecimal ol_amount = itemsMetadata.getItemPrice(ol_i_id);
+            String i_name = itemsMetadata.getItemName(ol_i_id);
+
             totalAmount += Integer.parseInt(items[i][0]);
+
             UDTValue item = itemType.newValue()
-                    .setInt("OL_I_ID", Integer.parseInt(items[i][0]))
-                    .setInt("OL_SUPPLY_W_ID", Integer.parseInt(items[i][1]))
-                    .setInt("OL_QUANTITY", Integer.parseInt(items[i][2]))
-                    .setDecimal("OL_AMOUNT", itemsMetadata.getItemPrice(Integer.parseInt(items[i][0])));
+                    .setInt("OL_I_ID", ol_i_id)
+                    .setInt("OL_SUPPLY_W_ID", ol_supply_w_id)
+                    .setInt("OL_QUANTITY", ol_quantity)
+                    .setDecimal("OL_AMOUNT", ol_amount);
             udtItems.add(item);
+
+            UDTValue item_type = Item_Type_type.newValue()
+                    .setInt("OL_I_ID", ol_i_id)
+                    .setString("I_NAME", i_name)
+                    .setInt("OL_SUPPLY_W_ID", ol_supply_w_id)
+                    .setInt("OL_QUANTITY", ol_quantity)
+                    .setDecimal("OL_AMOUNT", ol_amount);
+            udtItem_Type_list.add(item_type);
+
+
+            String getStockQty = String.format(
+                    "SELECT * FROM CS4224H.stocks_by_warehouse WHERE S_W_ID = %s AND S_I_ID = %s;",
+                    ol_supply_w_id, ol_i_id);
+            Row row = session.execute(
+                            getStockQty)
+                    .one();
+            int s_qty = row.getDecimal("S_QUANTITY").intValue();
+            int s_ytd = row.getDecimal("S_YTD").intValue();
+            int s_order_cnt = row.getInt("S_ORDER_CNT");
+            int s_remote_cnt = row.getInt("S_REMOTE_CNT");
+
+            int adj_qty = s_qty - ol_quantity;
+
+            if (adj_qty < 10) {
+                adj_qty += 100;
+            }
+
+            int update_ytd = s_ytd + ol_quantity;
+            int update_order_cnt = s_order_cnt + 1;
+            int update_remote_cnt = s_remote_cnt;
+
+            if (Integer.parseInt(this.warehouse_id) != ol_supply_w_id) {
+                update_order_cnt += 1;
+            }
+
+            String updateStock = String.format("UPDATE CS4224H.stocks_by_warehouse SET S_QUANTITY = %s, S_YTD = %s, S_ORDER_CNT = %s, S_REMOTE_CNT = %s " +
+                                    "WHERE S_W_ID = %s AND S_I_ID = %s;",
+                                    adj_qty, update_ytd, update_order_cnt, update_remote_cnt, ol_supply_w_id, ol_i_id);
+            session.execute(updateStock);
+
         }
 
         PreparedStatement ps = session.prepare(
@@ -76,13 +128,12 @@ public class NewOrderTxn implements Transaction {
         Date currDate = new Date();
         BoundStatement bound = ps.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
                 Integer.parseInt(customer_id), order_id, currDate, null, null, udtItems);
-
         session.execute(bound);
 
-        // transaction 5
+
         // Customer identifier (W ID, D ID, C ID), lastname C LAST, credit C CREDIT,
         String getCustomer = String.format(
-                "SELECT C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
+                "SELECT C_FIRST, C_MIDDLE, C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
                 this.warehouse_id, this.district_id, this.customer_id);
         Row row = session.execute(
                         getCustomer)
@@ -92,6 +143,13 @@ public class NewOrderTxn implements Transaction {
                 this.warehouse_id, this.district_id, this.customer_id, row.getString("C_LAST"),
                 row.getString("C_CREDIT"),
                 row.getDecimal("C_DISCOUNT").doubleValue());
+
+        // transaction 5
+        PreparedStatement ps_tx5 = session.prepare(
+                "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
+                order_id, currDate, row.getString("C_FIRST"), row.getString("C_MIDDLE"), row.getString("C_LAST"), udtItem_Type_list);
+        session.execute(bound_tx5);
 
         // 2. Warehouse tax rate W TAX, District tax rate D TAX
         row = session.execute(

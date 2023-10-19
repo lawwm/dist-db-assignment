@@ -1,14 +1,15 @@
 package table;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import com.datastax.driver.core.Session;
 
 public class Tables {
-  public void runCqlScript(Session session, String scriptPath) throws IOException {
-    BufferedReader reader = new BufferedReader(new FileReader(scriptPath));
+  public void runCqlScript(Session session, InputStream scriptStream) throws IOException {
+    BufferedReader reader = new BufferedReader(new InputStreamReader(scriptStream));
     StringBuilder stringBuilder = new StringBuilder();
     char[] buffer = new char[10];
     while (reader.read(buffer) != -1) {
