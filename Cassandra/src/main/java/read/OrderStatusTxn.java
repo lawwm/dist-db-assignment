@@ -52,20 +52,21 @@ public class OrderStatusTxn implements Transaction {
 		}
 		// Get Customer's Last Order
 		int o_id = row.getInt("O_ID");
-		int o_carrier_id = row.getInt("O_CARRIER_ID");
+		Integer o_carrier_id_Integer = row.getInt("O_CARRIER_ID");
 		Date o_entry_d_Date = row.getTimestamp("O_ENTRY_D");
 		Date ol_delivery_d_Date = row.getTimestamp("OL_DELIVERY_D");
 
 		String o_entry_d = o_entry_d_Date == null ? "NULL" : o_entry_d_Date.toString();
 		String ol_delivery_d = ol_delivery_d_Date == null ? "NULL" : ol_delivery_d_Date.toString();
+		String o_carrier_id = o_carrier_id_Integer == 0 ? "NULL" : o_carrier_id_Integer.toString();
 		System.out.printf("O_ID: %s O_ENTRY_D: %s O_CARRIER_ID: %s\n", o_id, o_entry_d, o_carrier_id);
 
 		// Get each Item in customer's last order
 		List<UDTValue> items = row.getList("ITEMS", UDTValue.class);
 		for (var item : items) {
-			int ol_i_id = (Integer) item.getInt("OL_I_ID");
-			int ol_supply_w_id = (Integer) item.getInt("OL_SUPPLY_W_ID");
-			int ol_quantity = (Integer) item.getInt("OL_QUANTITY");
+			int ol_i_id = item.getInt("OL_I_ID");
+			int ol_supply_w_id = item.getInt("OL_SUPPLY_W_ID");
+			int ol_quantity = item.getInt("OL_QUANTITY");
 			BigDecimal ol_amount = item.getDecimal("OL_AMOUNT");
 			System.out.printf("OL_I_ID: %d OL_SUPPLY_W_ID: %d OL_QUANTITY: %d OL_AMOUNT: %s OL_DELIVERY_D %s\n",
 					ol_i_id,

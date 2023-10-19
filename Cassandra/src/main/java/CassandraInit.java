@@ -9,6 +9,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
@@ -21,7 +25,7 @@ import utils.TransactionBuilder;
 public class CassandraInit {
     private static final String KEYSPACE_REF = "CS4224H";
     private static final String SCHEMA_FILE_PATH = "schema.cql";
-    private static final String ITEMS_METADATA_PATH = "project_files/data_files/item.csv";
+    private static final String ITEMS_METADATA_PATH = "../../../project_files/data_files/item.csv";
 
     private static final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
     private static final String TRANSACTION_STATISTICS_TEMPLATE = "Total Transactions: %d, Total Elapsed Time (s): %.2f, " +
@@ -109,18 +113,23 @@ public class CassandraInit {
         long startTime = System.currentTimeMillis();
         while ((line = reader.readLine()) != null) {
             // process the line
-            Transaction t = builder.build(reader, line);
-            if (t == null) {
-                System.err.println(INVALID_TRANSACTION_ERROR_TEMPLATE + line);
-                continue;
+            try {
+                Transaction t = builder.build(reader, line);
+                if (t == null) {
+                    System.err.println(INVALID_TRANSACTION_ERROR_TEMPLATE + line);
+                    continue;
+                }
+                System.out.println(t.getClass().getName());
+                long transStartTime = System.currentTimeMillis();
+                t.run(session, metadata);
+                long transEndTime = System.currentTimeMillis();
+                long currLatency = transEndTime - transStartTime;
+                System.out.printf("Time taken: %d\n", currLatency);
+                latencies.add(currLatency);
+                numTransaction++;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            System.out.println(t.getClass().getName());
-            long transStartTime = System.currentTimeMillis();
-            t.run(session, metadata);
-            long transEndTime = System.currentTimeMillis();
-            long currLatency = transEndTime - transStartTime;
-            latencies.add(currLatency);
-            numTransaction++;
         }
         long endTime = System.currentTimeMillis();
         reader.close();
@@ -175,7 +184,7 @@ public class CassandraInit {
         }
     }
 
-    private static void computeStatistics(String clientNum, long numTransaction, List<Long> latencies, long startTime, long endTime) {
+    private static void computeStatistics(String clientNum, long numTransaction, List<Long> latencies, long startTime, long endTime) throws IOException {
         double totalElapsedTime = (endTime - startTime) / 1000.0;
         totalElapsedTime = roundTo2DP(totalElapsedTime);
         double transThroughput = numTransaction / totalElapsedTime;
@@ -192,11 +201,20 @@ public class CassandraInit {
         long ninetyNinePer = latencyComputations[2];
 
         // Pass to csv file
-        System.out.printf(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
-                transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
+        String statisticLine = String.format(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
+            transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
+        System.out.printf(statisticLine);
         System.err.println(clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
                 transThroughput + "," + averageLatency + "," + medianLatency + "," +
                 ninetyFifthPer + "," + ninetyNinePer);
+
+        Path filePath = Paths.get("clients.csv");
+        if (!Files.exists(filePath)) {
+            // Create the file if it doesn't exist
+            Files.createFile(filePath);
+        }
+        // Append to the file (or write if it's just been created)
+        Files.write(filePath, statisticLine.getBytes(), StandardOpenOption.APPEND);
     }
 
     /**

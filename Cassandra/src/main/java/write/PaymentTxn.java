@@ -78,16 +78,15 @@ public class PaymentTxn implements Transaction {
                                 customer.getDecimal("C_BALANCE"));
 
                 // 2. Warehouse’s address (W STREET 1, W STREET 2, W CITY, W STATE, W ZIP)
-                System.out.printf("2. Warehouse's address: %s %s %s %s %s\n", district.getString("D_STREET_1"),
-                                district.getString("D_STREET_2"),
-                                district.getString("D_CITY"), district.getString("D_STATE"),
-                                district.getString("D_ZIP"));
+                System.out.printf("2. Warehouse's address: %s %s %s %s %s\n", district.getString("W_STREET_1"),
+                                district.getString("W_STREET_2"),
+                                district.getString("W_CITY"), district.getString("W_STATE"),
+                                district.getString("W_ZIP"));
 
                 // 3. District’s address (D STREET 1, D STREET 2, D CITY, D STATE, D ZIP)
                 System.out.printf("3. District's address: %s %s %s %s %s\n", district.getString("D_STREET_1"),
-                                district.getString("D_STREET_2"),
-                                district.getString("D_CITY"), district.getString("D_STATE"),
-                                district.getString("D_ZIP"));
+                                district.getString("D_STREET_2"), district.getString("D_CITY"), 
+                                district.getString("D_STATE"), district.getString("D_ZIP"));
 
                 // 4. Payment amount PAYMENT
                 System.out.printf("4. Payment amount: %.2f\n", this.payment);

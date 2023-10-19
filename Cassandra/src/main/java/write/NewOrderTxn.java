@@ -71,7 +71,7 @@ public class NewOrderTxn implements Transaction {
             BigDecimal ol_amount = itemsMetadata.getItemPrice(ol_i_id);
             String i_name = itemsMetadata.getItemName(ol_i_id);
 
-            totalAmount += Integer.parseInt(items[i][0]);
+            totalAmount += (double) ol_quantity * ol_amount.doubleValue();
 
             UDTValue item = itemType.newValue()
                     .setInt("OL_I_ID", ol_i_id)
@@ -138,35 +138,36 @@ public class NewOrderTxn implements Transaction {
         String getCustomer = String.format(
                 "SELECT C_FIRST, C_MIDDLE, C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
                 this.warehouse_id, this.district_id, this.customer_id);
-        Row row = session.execute(
+        Row customer = session.execute(
                         getCustomer)
                 .one();
 
         System.out.printf("1. Customer identifier: %s %s %s, lastname %s, credit %s, discount %.2f\n",
-                this.warehouse_id, this.district_id, this.customer_id, row.getString("C_LAST"),
-                row.getString("C_CREDIT"),
-                row.getDecimal("C_DISCOUNT").doubleValue());
+                this.warehouse_id, this.district_id, this.customer_id, customer.getString("C_LAST"),
+                customer.getString("C_CREDIT"),
+                customer.getDecimal("C_DISCOUNT").doubleValue());
 
         // transaction 5
         PreparedStatement ps_tx5 = session.prepare(
                 "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
-                order_id, currDate, row.getString("C_FIRST"), row.getString("C_MIDDLE"), row.getString("C_LAST"), udtItem_Type_list);
+                order_id, currDate, customer.getString("C_FIRST"), customer.getString("C_MIDDLE"), customer.getString("C_LAST"), udtItem_Type_list);
         session.execute(bound_tx5);
 
         // 2. Warehouse tax rate W TAX, District tax rate D TAX
-        row = session.execute(
+        Row district = session.execute(
                         "SELECT W_TAX, D_TAX FROM CS4224H.district_by_warehouse WHERE W_ID = " + warehouse_id + " AND D_ID = "
                                 + district_id + ";")
                 .one();
         System.out.printf("2. Warehouse tax rate %.2f, District tax rate %.2f\n",
-                row.getDecimal("W_TAX").doubleValue(),
-                row.getDecimal("D_TAX").doubleValue());
+                district.getDecimal("W_TAX").doubleValue(),
+                district.getDecimal("D_TAX").doubleValue());
 
         // 3. Order number O ID, entry date O ENTRY D
         System.out.printf("3. Order number %s, entry date %s\n", order_id, sdf.format(currDate));
 
         // 4. Number of items NUM ITEMS, Total amount for order TOTAL AMOUNT
+        totalAmount = totalAmount * (1 + district.getDecimal("W_TAX").doubleValue() + district.getDecimal("D_TAX").doubleValue()) * customer.getDecimal("C_DISCOUNT").doubleValue();
         System.out.printf("4. Number of items %d, Total amount for order %.2f\n", items.length, totalAmount);
 
         // 5. For each ordered item ITEM NUMBER[i], i ∈ [1, NUM ITEMS]
