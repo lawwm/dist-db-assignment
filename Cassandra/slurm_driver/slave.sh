@@ -9,7 +9,7 @@ CONF_DIR=$ROOT_DIR/apache-cassandra-4.1.3 # Path to apache-cassandra
 SENTINEL_FILE="./sentinel.txt"
 DATA_DIR="../scripts/data"
 JAR_DIR="../cassandra"
-CQL_DIR="../src/main/java/cql/schema.cql" # Path of CQL file
+CQL_SCHEMA_DIR="../src/main/resources/schema.cql" # Path of CQL file
 NODE_IP_ADDR="" # Ip address of current node
 TRANSACTION_DIR=$ROOT_DIR/project_files/xact_files # Xact files
 MAX_FILE=19
@@ -24,12 +24,14 @@ populate_data() {
     NODE_IP_ADDR=$IP_2
   fi
 
-  $CONF_DIR/bin/cqlsh $NODE_IP_ADDR -f $CQL_DIR
+  echo "RUNNING" $NODE_IP_ADDR $CQL_SCHEMA_DIR
+  $CONF_DIR/bin/cqlsh $NODE_IP_ADDR -f $CQL_SCHEMA_DIR && break
 }
 
 ## STAGE 1: Set up all cassandra nodes
 main() {
   # Remove temp directory
+  java --version
   rm -rf $DIR
   rm $SENTINEL_FILE
   echo "Before temp cs4224h folder created:"

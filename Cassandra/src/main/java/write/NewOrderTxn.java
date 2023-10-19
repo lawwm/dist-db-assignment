@@ -62,6 +62,8 @@ public class NewOrderTxn implements Transaction {
         List<UDTValue> udtItem_Type_list = new ArrayList<>();
         UserType Item_Type_type = session.getCluster().getMetadata().getKeyspace("CS4224H").getUserType("Item_Type");
         double totalAmount = 0;
+        List<Integer> updated_s_quantity = new ArrayList<>();
+
         for (int i = 0; i < items.length; i++) {
             int ol_i_id =  Integer.parseInt(items[i][0]);
             int ol_supply_w_id = Integer.parseInt(items[i][1]);
@@ -104,6 +106,7 @@ public class NewOrderTxn implements Transaction {
                 adj_qty += 100;
             }
 
+            updated_s_quantity.add(adj_qty);
             int update_ytd = s_ytd + ol_quantity;
             int update_order_cnt = s_order_cnt + 1;
             int update_remote_cnt = s_remote_cnt;
@@ -171,8 +174,8 @@ public class NewOrderTxn implements Transaction {
             int itemId = Integer.parseInt(items[i][0]);
             System.out.printf(
                     "ITEM_NUMBER[i] : %d, I_NAME : %s, SUPPLIER_WAREHOUSE[i]: %s, QUANTITY[i]: %s, OL_AMOUNT: %.2f, S_QUANTITY: %d\n",
-                    i, itemsMetadata.getItemName(itemId), items[i][1], items[i][2], itemsMetadata.getItemPrice(itemId),
-                    12345);
+                    itemId, itemsMetadata.getItemName(itemId), items[i][1], items[i][2], itemsMetadata.getItemPrice(itemId),
+                    updated_s_quantity.get(i));
         }
     }
 

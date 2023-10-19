@@ -38,13 +38,17 @@ public class CassandraInit {
 
     public static void main(String[] args) {
         boolean hasNecessaryArgs = args.length >= 4;
+
         if (!hasNecessaryArgs) {
             System.out.println(INVALID_ARGUMENTS_ERROR_MESSAGE);
             return;
         }
         try {
+            // Collect set of items from items csv file
             ItemsMetadata itemsMetadata = new ItemsMetadata();
             itemsMetadata.populate(ITEMS_METADATA_PATH);
+
+            // Connect to cassandra cluster
             String host = args[0];
             int port = Integer.parseInt(args[1]);
             String cmd = args[2];
@@ -53,6 +57,8 @@ public class CassandraInit {
             Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
             Session session = cluster.connect();
             System.out.println(SESSION_CONN_SUCC_MESSAGE);
+            
+            // Run specific command
             if (cmd.equals(commands[0])) {
                 session = preprocess(session, cluster);
                 processTransactions(session, itemsMetadata, clientPath);
@@ -118,6 +124,8 @@ public class CassandraInit {
         }
         long endTime = System.currentTimeMillis();
         reader.close();
+
+        // This calculates measurements for clients.csv file
         computeStatistics(clientNum, numTransaction, latencies, startTime, endTime);
     }
 
@@ -182,6 +190,8 @@ public class CassandraInit {
         long medianLatency = latencyComputations[0];
         long ninetyFifthPer = latencyComputations[1];
         long ninetyNinePer = latencyComputations[2];
+
+        // Pass to csv file
         System.out.printf(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
                 transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
         System.err.println(clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
