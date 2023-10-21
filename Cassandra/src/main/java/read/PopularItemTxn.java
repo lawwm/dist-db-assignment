@@ -55,7 +55,7 @@ public class PopularItemTxn implements Transaction {
             List<String> tempItemList = new ArrayList<>();
 
             for (var udt : itemList) {
-                String i_name = udt.getString("I_NAME");
+                String i_name = itemsMetadata.getItemName(udt.getInt("OL_I_ID"));
                 int ol_qty = udt.getInt("OL_QUANTITY");
 
                 hm.compute(i_name, (key, oldValue) -> (oldValue == null) ? ol_qty : oldValue + ol_qty);
@@ -71,7 +71,7 @@ public class PopularItemTxn implements Transaction {
                 }
             }
 
-            System.out.printf("3. Order number %d and time %s\n", o_id, o_entry_d.toString());
+            System.out.printf("   Order number %d and time %s\n", o_id, o_entry_d.toString());
             System.out.printf("   Customer name %s %s %s\n", c_first, c_middle, c_last);
             String c = "";
 
@@ -83,7 +83,6 @@ public class PopularItemTxn implements Transaction {
 
             System.out.printf(c);
         }
-
 
         String d = "";
         for (String s : popular_item_hm.keySet()) {
