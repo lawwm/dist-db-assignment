@@ -8,14 +8,14 @@ DIR="/temp/cs4224h" # Use the temp directory for storing data
 CONF_DIR=$ROOT_DIR/apache-cassandra-4.1.3 # Path to apache-cassandra
 SENTINEL_FILE="./sentinel.txt"
 DATA_DIR="../scripts/data"
-JAR_DIR="../cassandra"
-CQL_DIR="../src/main/java/cql/schema.cql" # Path of CQL file
+JAR_DIR="../build/libs"
+CQL_SCHEMA_DIR="../src/main/resources/schema.cql" # Path of CQL file
 NODE_IP_ADDR="" # Ip address of current node
 TRANSACTION_DIR=$ROOT_DIR/project_files/xact_files # Xact files
 MAX_FILE=19
+CLIENT_CSV="./clients.csv"
 
-populate_data() {
-  echo "populate data"
+configure_ip() {
   IP_1=$(hostname -I | awk '{print $1}')
   IP_2=$(hostname -I | awk '{print $2}')
   if $CONF_DIR/bin/nodetool status | grep -q $IP_1; then
@@ -23,13 +23,20 @@ populate_data() {
   else
     NODE_IP_ADDR=$IP_2
   fi
+}
 
-  $CONF_DIR/bin/cqlsh $NODE_IP_ADDR -f $CQL_DIR
+populate_data() {
+  sleep 10
+  echo "populate data"
+  configure_ip
+  echo "RUNNING" $NODE_IP_ADDR $CQL_SCHEMA_DIR
+  $CONF_DIR/bin/cqlsh $NODE_IP_ADDR -f $CQL_SCHEMA_DIR
 }
 
 ## STAGE 1: Set up all cassandra nodes
 main() {
   # Remove temp directory
+  java --version
   rm -rf $DIR
   rm $SENTINEL_FILE
   echo "Before temp cs4224h folder created:"
@@ -101,24 +108,36 @@ main() {
     done 
   fi
 
-  while true; do
-    sleep 10
+
+  #Stage 2: Run 4 clients
+  configure_ip
+
+  # Run 4 clients
+  for i in $(seq 0 4); do
+      FILE_NUM=$(( $SLURM_PROCID + 5 * $i ))
+      if [[ $FILE_NUM -le $MAX_FILE ]]; then
+          echo "Running file $FILE_NUM on $NODE_IP_ADDR"
+
+          # Run the file here, for example:
+          java -jar $JAR_DIR/CassandraProcessor.jar $NODE_IP_ADDR 9042 Run $TRANSACTION_DIR/$FILE_NUM.txt &
+      fi
   done
-
-  # Stage 2: Run 4 clients
-  # # Run 4 clients
-  # for i in $(seq 0 4); do
-  #     FILE_NUM=$(( $SLURM_PROCID + 5 * $i ))
-  #     if [[ $FILE_NUM -le $MAX_FILE ]]; then
-  #         echo "Running file $FILE_NUM"
-
-  #         # Run the file here, for example:
-  #         java -jar $JAR_DIR/CassandraProcessor.jar $NODE_IP_ADDR 9042 Run $TRANSACTION_DIR/$FILE_NUM.txt &
-  #     fi
-  # done
 
   # Clean up
   wait  
+  echo "Clients completed running on this server!"
+
+  # Wait until every single client is done
+  line_count=$(wc -l < $CLIENT_CSV)
+  # Loop until line count is 20
+  while [ "$line_count" -ne 20 ]; do
+      # Your code here...
+      # Sleep for a short period before checking again (optional but recommended to avoid overloading the system)
+      sleep 10
+      # Update the line count for the next iteration
+      line_count=$(wc -l < $CLIENT_CSV)
+  done
+
 }
 
 cleanup() {

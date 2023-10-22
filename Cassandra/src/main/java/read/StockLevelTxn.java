@@ -47,9 +47,10 @@ public class StockLevelTxn implements Transaction {
 
             for (UDTValue udt : itemList) {
                 int ol_i_id = udt.getInt("OL_I_ID");
+
                 int ol_supply_w_id = udt.getInt("OL_SUPPLY_W_ID");
 
-                // If supply_w_id is same as warehouse_id?
+                // If supply_w_id is same as warehouse_id? I think don't need this condition
                 if (ol_supply_w_id == Integer.parseInt(this.warehouse_id)) {
                     items_below_stock_level.add(ol_i_id);
                 }

@@ -12,6 +12,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.OptionalDouble;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ResultSet;
@@ -27,7 +31,7 @@ import utils.TransactionBuilder;
 public class CassandraInit {
     private static final String KEYSPACE_REF = "CS4224H";
     private static final String SCHEMA_FILE_PATH = "schema.cql";
-    private static final String ITEMS_METADATA_PATH = "project_files/data_files/item.csv";
+    private static final String ITEMS_METADATA_PATH = "../../../project_files/data_files/item.csv";
     private static final String DB_STATE_FILE = "dbstate.csv";
 
     private static final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
@@ -45,13 +49,17 @@ public class CassandraInit {
 
     public static void main(String[] args) {
         boolean hasNecessaryArgs = args.length >= 4;
+
         if (!hasNecessaryArgs) {
             System.out.println(INVALID_ARGUMENTS_ERROR_MESSAGE);
             return;
         }
         try {
+            // Collect set of items from items csv file
             ItemsMetadata itemsMetadata = new ItemsMetadata();
             itemsMetadata.populate(ITEMS_METADATA_PATH);
+
+            // Connect to cassandra cluster
             String host = args[0];
             int port = Integer.parseInt(args[1]);
             String cmd = args[2];
@@ -60,6 +68,8 @@ public class CassandraInit {
             Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
             Session session = cluster.connect();
             System.out.println(SESSION_CONN_SUCC_MESSAGE);
+            
+            // Run specific command
             if (cmd.equals(commands[0])) {
                 session = preprocess(session, cluster);
                 processTransactions(session, itemsMetadata, clientPath);
@@ -113,21 +123,28 @@ public class CassandraInit {
         long startTime = System.currentTimeMillis();
         while ((line = reader.readLine()) != null) {
             // process the line
-            Transaction t = builder.build(reader, line);
-            if (t == null) {
-                System.err.println(INVALID_TRANSACTION_ERROR_TEMPLATE + line);
-                continue;
+            try {
+                Transaction t = builder.build(reader, line);
+                if (t == null) {
+                    System.err.println(INVALID_TRANSACTION_ERROR_TEMPLATE + line);
+                    continue;
+                }
+                System.out.println(t.getClass().getName());
+                long transStartTime = System.currentTimeMillis();
+                t.run(session, metadata);
+                long transEndTime = System.currentTimeMillis();
+                long currLatency = transEndTime - transStartTime;
+                System.out.printf("Time taken: %d\n", currLatency);
+                latencies.add(currLatency);
+                numTransaction++;
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            System.out.println(t.getClass().getName());
-            long transStartTime = System.currentTimeMillis();
-            t.run(session, metadata);
-            long transEndTime = System.currentTimeMillis();
-            long currLatency = transEndTime - transStartTime;
-            latencies.add(currLatency);
-            numTransaction++;
         }
         long endTime = System.currentTimeMillis();
         reader.close();
+
+        // This calculates measurements for clients.csv file
         computeStatistics(clientNum, numTransaction, latencies, startTime, endTime);
     }
 
@@ -177,7 +194,7 @@ public class CassandraInit {
         }
     }
 
-    private static void computeStatistics(String clientNum, long numTransaction, List<Long> latencies, long startTime, long endTime) {
+    private static void computeStatistics(String clientNum, long numTransaction, List<Long> latencies, long startTime, long endTime) throws IOException {
         double totalElapsedTime = (endTime - startTime) / 1000.0;
         totalElapsedTime = roundTo2DP(totalElapsedTime);
         double transThroughput = numTransaction / totalElapsedTime;
@@ -192,11 +209,22 @@ public class CassandraInit {
         long medianLatency = latencyComputations[0];
         long ninetyFifthPer = latencyComputations[1];
         long ninetyNinePer = latencyComputations[2];
-        System.out.printf(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
-                transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
-        System.err.println(clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
+
+        // Pass to csv file
+        String statisticLine = String.format(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
+            transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
+        String csvStatisticLine = clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
                 transThroughput + "," + averageLatency + "," + medianLatency + "," +
-                ninetyFifthPer + "," + ninetyNinePer);
+                ninetyFifthPer + "," + ninetyNinePer;
+        System.out.println(statisticLine);
+
+        Path filePath = Paths.get("clients.csv");
+        if (!Files.exists(filePath)) {
+            // Create the file if it doesn't exist
+            Files.createFile(filePath);
+        }
+        // Append to the file (or write if it's just been created)
+        Files.write(filePath, csvStatisticLine.getBytes(), StandardOpenOption.APPEND);
     }
 
     /**
