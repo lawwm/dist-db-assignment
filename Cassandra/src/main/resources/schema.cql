@@ -59,6 +59,9 @@ CREATE TABLE stocks_by_warehouse (
 	S_W_ID int,
 	S_I_ID int,
 	S_QUANTITY decimal,
+  S_YTD decimal,
+  S_ORDER_CNT int,
+  S_REMOTE_CNT int,
 	PRIMARY KEY ((S_W_ID, S_I_ID))
 );
 

@@ -84,6 +84,9 @@ public class NewOrderTxn implements Transaction {
                     getStockQty)
                     .one();
             int s_qty = row.getDecimal("S_QUANTITY").intValue();
+            int s_ytd = row.getDecimal("S_YTD").intValue();
+            int s_order_cnt = row.getInt("S_ORDER_CNT");
+            int s_remote_cnt = row.getInt("S_REMOTE_CNT");
 
             int adj_qty = s_qty - ol_quantity;
 
@@ -92,10 +95,15 @@ public class NewOrderTxn implements Transaction {
             }
 
             updated_s_quantity.add(adj_qty);
+            int update_ytd = s_ytd + ol_quantity;
+            int update_order_cnt = s_order_cnt + 1;
+            int update_remote_cnt = s_remote_cnt;
 
             String updateStock = String.format(
-                    "UPDATE CS4224H.stocks_by_warehouse SET S_QUANTITY = %s WHERE S_W_ID = %s AND S_I_ID = %s;",
-                    adj_qty, ol_supply_w_id, ol_i_id);
+                    "UPDATE CS4224H.stocks_by_warehouse SET S_QUANTITY = %s, S_YTD = %s, S_ORDER_CNT = %s, S_REMOTE_CNT = %s "
+                            +
+                            "WHERE S_W_ID = %s AND S_I_ID = %s;",
+                    adj_qty, update_ytd, update_order_cnt, update_remote_cnt, ol_supply_w_id, ol_i_id);
             session.execute(updateStock);
 
         }

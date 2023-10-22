@@ -30,7 +30,7 @@
 -- JOIN Warehouse W on D.D_W_ID = W.W_ID) TO '/container/dir/district_by_warehouse.csv' WITH CSV;
 
 -- Transaction 5
-COPY (SELECT S_W_ID, S_I_ID, S_QUANTITY
+COPY (SELECT S_W_ID, S_I_ID, S_QUANTITY, S_YTD, S_ORDER_CNT, S_REMOTE_CNT
 FROM Stock S)
 TO '/container/dir/stocks_by_warehouse.csv' WITH CSV;
 
