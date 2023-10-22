@@ -6,4 +6,4 @@
 #SBATCH --partition=long
 #SBATCH --exclude=xcng0,xcng1
 
-srun --output=task_output_%j_%t.out bash ./slave.sh
+srun  --output=task_output_%j_%t.out bash ./slave.sh
