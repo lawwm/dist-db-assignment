@@ -14,8 +14,10 @@ import java.util.List;
 import java.util.OptionalDouble;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.UDTValue;
 
 import table.Tables;
 import utils.ItemsMetadata;
@@ -238,14 +240,14 @@ public class CassandraInit {
         String custQuery = "select sum(C_BALANCE), sum(C_YTD_PAYMENT), sum(C_PAYMENT_CNT), sum(C_DELIVERY_CNT) " +
                 "from customers";
         String orderQuery = "select max(O_ID) from customers_by_order";
-        String orderLineQuery = "select sum(OL_AMOUNT), sum(OL_QUANTITY) from Item_Type";
+        String orderLineQuery = "select ITEMS from orders_by_customer";
         String stockQuery = "select sum(S_QUANTITY), sum(S_YTD), sum(S_ORDER_CNT), sum(S_REMOTE_CNT) " +
                 "from stocks_by_warehouse";
         Row distWareResultRow = session.execute(distWareQuery).one();
         Row custResultRow = session.execute(custQuery).one();
         Row orderResultRow = session.execute(orderQuery).one();
-        Row orderLineResultRow = session.execute(orderLineQuery).one();
         Row stockResultRow = session.execute(stockQuery).one();
+        ResultSet orderLineResults = session.execute(orderLineQuery);
         BigDecimal d_ytd = distWareResultRow.getDecimal(0); // Same as W_YTD
         int d_next_o_id = distWareResultRow.getInt(1);
         BigDecimal c_balance = custResultRow.getDecimal(0);
@@ -253,8 +255,17 @@ public class CassandraInit {
         int c_payment_cnt = custResultRow.getInt(2);
         int c_delivery_cnt = custResultRow.getInt(3);
         int o_id = orderResultRow.getInt(0);
-        BigDecimal ol_amount = orderLineResultRow.getDecimal(0);
-        int ol_quantity = orderLineResultRow.getInt(1);
+        BigDecimal ol_amount = new BigDecimal(0);
+        int ol_quantity = 0;
+        for (Row currRow : orderLineResults) {
+            List<UDTValue> items = currRow.getList("ITEMS", UDTValue.class);
+            for (UDTValue currItem : items) {
+                BigDecimal currOlAmount = currItem.getDecimal("OL_AMOUNT");
+                int currOlQuantity = currItem.getInt("OL_QUANTITY");
+                ol_amount.add(currOlAmount);
+                ol_quantity += currOlQuantity;
+            }
+        }
         BigDecimal s_quantity = stockResultRow.getDecimal(0);
         BigDecimal s_ytd = stockResultRow.getDecimal(1);
         int s_order_cnt = stockResultRow.getInt(2);
@@ -279,7 +290,7 @@ public class CassandraInit {
             System.err.println(e.getMessage());
         }
     }
-    
+
     private static void writeRow(BufferedWriter writer, String value) throws IOException {
         writer.write(value);
         writer.newLine();
