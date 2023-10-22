@@ -1,9 +1,12 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -15,7 +18,10 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.UDTValue;
 
 import table.Tables;
 import utils.ItemsMetadata;
@@ -26,6 +32,7 @@ public class CassandraInit {
     private static final String KEYSPACE_REF = "CS4224H";
     private static final String SCHEMA_FILE_PATH = "schema.cql";
     private static final String ITEMS_METADATA_PATH = "../../../project_files/data_files/item.csv";
+    private static final String DB_STATE_FILE = "dbstate.csv";
 
     private static final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
     private static final String TRANSACTION_STATISTICS_TEMPLATE = "Total Transactions: %d, Total Elapsed Time (s): %.2f, " +
@@ -38,7 +45,7 @@ public class CassandraInit {
     private static final String SESSION_CONN_SUCC_MESSAGE = "Connected to session";
     private static final String CLEARED_DB_SUCC_MESSAGE = "Cleared DB";
 
-    private static final String[] commands = { "Create", "Run" };
+    private static final String[] commands = { "Create", "Run", "State" };
 
     public static void main(String[] args) {
         boolean hasNecessaryArgs = args.length >= 4;
@@ -69,6 +76,9 @@ public class CassandraInit {
             } else if (cmd.equals(commands[1])) {
                 session = cluster.connect(KEYSPACE_REF);
                 processTransactions(session, itemsMetadata, clientPath);
+            } else if (cmd.equals(commands[2])) {
+                session = cluster.connect(KEYSPACE_REF);
+                generateState(session);
             }
             session.close();
             cluster.close();
@@ -247,5 +257,71 @@ public class CassandraInit {
         DecimalFormat df = new DecimalFormat("#.##");
         String formattedNumber = df.format(number);
         return Double.parseDouble(formattedNumber);
+    }
+
+    /**
+     * Generates the final state of the DB
+     * @param session Used to executed queries to get final state of DB
+     */
+    private static void generateState(Session session) {
+        String distWareQuery = "select sum(D_YTD), sum(D_NEXT_O_ID) from district_by_warehouse";
+        String custQuery = "select sum(C_BALANCE), sum(C_YTD_PAYMENT), sum(C_PAYMENT_CNT), sum(C_DELIVERY_CNT) " +
+                "from customers";
+        String orderQuery = "select max(O_ID) from customers_by_order";
+        String orderLineQuery = "select ITEMS from orders_by_customer";
+        String stockQuery = "select sum(S_QUANTITY), sum(S_YTD), sum(S_ORDER_CNT), sum(S_REMOTE_CNT) " +
+                "from stocks_by_warehouse";
+        Row distWareResultRow = session.execute(distWareQuery).one();
+        Row custResultRow = session.execute(custQuery).one();
+        Row orderResultRow = session.execute(orderQuery).one();
+        Row stockResultRow = session.execute(stockQuery).one();
+        ResultSet orderLineResults = session.execute(orderLineQuery);
+        BigDecimal d_ytd = distWareResultRow.getDecimal(0); // Same as W_YTD
+        int d_next_o_id = distWareResultRow.getInt(1);
+        BigDecimal c_balance = custResultRow.getDecimal(0);
+        BigDecimal c_ytd_payment = custResultRow.getDecimal(1);
+        int c_payment_cnt = custResultRow.getInt(2);
+        int c_delivery_cnt = custResultRow.getInt(3);
+        int o_id = orderResultRow.getInt(0);
+        BigDecimal ol_amount = new BigDecimal(0);
+        int ol_quantity = 0;
+        for (Row currRow : orderLineResults) {
+            List<UDTValue> items = currRow.getList("ITEMS", UDTValue.class);
+            for (UDTValue currItem : items) {
+                BigDecimal currOlAmount = currItem.getDecimal("OL_AMOUNT");
+                int currOlQuantity = currItem.getInt("OL_QUANTITY");
+                ol_amount.add(currOlAmount);
+                ol_quantity += currOlQuantity;
+            }
+        }
+        BigDecimal s_quantity = stockResultRow.getDecimal(0);
+        BigDecimal s_ytd = stockResultRow.getDecimal(1);
+        int s_order_cnt = stockResultRow.getInt(2);
+        int s_remote_cnt = stockResultRow.getInt(3);
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(DB_STATE_FILE));
+            writeRow(writer, d_ytd.toString());
+            writeRow(writer, d_ytd.toString());
+            writeRow(writer, String.valueOf(d_next_o_id));
+            writeRow(writer, c_balance.toString());
+            writeRow(writer, c_ytd_payment.toString());
+            writeRow(writer, String.valueOf(c_payment_cnt));
+            writeRow(writer, String.valueOf(c_delivery_cnt));
+            writeRow(writer, String.valueOf(o_id));
+            writeRow(writer, ol_amount.toString());
+            writeRow(writer, String.valueOf(ol_quantity));
+            writeRow(writer, s_quantity.toString());
+            writeRow(writer, s_ytd.toString());
+            writeRow(writer, String.valueOf(s_order_cnt));
+            writeRow(writer, String.valueOf(s_remote_cnt));
+            writer.close();
+        } catch (IOException e) {
+            System.err.println(e.getMessage());
+        }
+    }
+
+    private static void writeRow(BufferedWriter writer, String value) throws IOException {
+        writer.write(value);
+        writer.newLine();
     }
 }
