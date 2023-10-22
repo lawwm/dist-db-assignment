@@ -15,7 +15,7 @@ FROM 'project_files/data_files/orders_by_district.csv' WITH DELIMITER=',';
 COPY CS4224H.orders_by_customer(C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS)
 FROM 'project_files/data_files/orders_by_customer.csv' WITH DELIMITER=',';
 
-COPY CS4224H.stocks_by_warehouse(S_W_ID, S_I_ID, S_QUANTITY, S_YTD, S_ORDER_CNT, S_REMOTE_CNT)
+COPY CS4224H.stocks_by_warehouse(S_W_ID, S_I_ID, S_QUANTITY)
 FROM 'project_files/data_files/stocks_by_warehouse.csv' WITH DELIMITER=',';
 
 COPY CS4224H.customer_item_denorm(C_W_ID, C_D_ID, C_ID, OL_I_ID)

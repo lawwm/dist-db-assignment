@@ -3,10 +3,8 @@ package read;
 import utils.ItemsMetadata;
 import utils.Transaction;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
-import java.util.ArrayList;
 import java.util.HashSet;
 
 import com.datastax.driver.core.ResultSet;

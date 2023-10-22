@@ -35,7 +35,8 @@ public class CassandraInit {
     private static final String DB_STATE_FILE = "dbstate.csv";
 
     private static final String CREATE_TEMP_ITEM_ID_INDEX_QUERY = "create index temp on customer_item_denorm (ol_i_id);";
-    private static final String TRANSACTION_STATISTICS_TEMPLATE = "Total Transactions: %d, Total Elapsed Time (s): %.2f, " +
+    private static final String TRANSACTION_STATISTICS_TEMPLATE = "Total Transactions: %d, Total Elapsed Time (s): %.2f, "
+            +
             "Transaction Throughput: %.2f, Average Latency (ms): %.2f, Median Latency (ms): %d, " +
             "95 percentile latency (ms): %d, 99 percentile latency (ms): %d \n";
 
@@ -68,7 +69,7 @@ public class CassandraInit {
             Cluster cluster = Cluster.builder().addContactPoint(host).withPort(port).build();
             Session session = cluster.connect();
             System.out.println(SESSION_CONN_SUCC_MESSAGE);
-            
+
             // Run specific command
             if (cmd.equals(commands[0])) {
                 session = preprocess(session, cluster);
@@ -89,6 +90,7 @@ public class CassandraInit {
 
     /**
      * Clears the DB, creates tables and fills tables with data.
+     * 
      * @param session Session to generate the tables in
      * @param cluster Cluster to generate the tables in
      * @return The session with the generated tables.
@@ -109,10 +111,12 @@ public class CassandraInit {
 
     /**
      * Builds the transactions and executes it.
+     * 
      * @param session Session to execute the transaction in
      * @throws IOException
      */
-    private static void processTransactions(Session session, ItemsMetadata metadata, String clientPath) throws IOException {
+    private static void processTransactions(Session session, ItemsMetadata metadata, String clientPath)
+            throws IOException {
         File clientFile = new File(clientPath);
         BufferedReader reader = new BufferedReader(new FileReader(clientFile));
         String clientNum = clientFile.getName().split("\\.")[0];
@@ -173,6 +177,7 @@ public class CassandraInit {
 
     /**
      * Executes the command in the cmd.
+     * 
      * @param command The command to run
      */
     private static void executeCommand(String command) {
@@ -194,7 +199,8 @@ public class CassandraInit {
         }
     }
 
-    private static void computeStatistics(String clientNum, long numTransaction, List<Long> latencies, long startTime, long endTime) throws IOException {
+    private static void computeStatistics(String clientNum, long numTransaction, List<Long> latencies, long startTime,
+            long endTime) throws IOException {
         double totalElapsedTime = (endTime - startTime) / 1000.0;
         totalElapsedTime = roundTo2DP(totalElapsedTime);
         double transThroughput = numTransaction / totalElapsedTime;
@@ -212,7 +218,7 @@ public class CassandraInit {
 
         // Pass to csv file
         String statisticLine = String.format(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
-            transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
+                transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
         String csvStatisticLine = clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
                 transThroughput + "," + averageLatency + "," + medianLatency + "," +
                 ninetyFifthPer + "," + ninetyNinePer;
@@ -229,6 +235,7 @@ public class CassandraInit {
 
     /**
      * Computes the median, 95 percentile and 99 percentile of latencies
+     * 
      * @param latencies Latencies to be used for computation
      * @return The calculated values of the latency
      */
@@ -236,7 +243,7 @@ public class CassandraInit {
         Collections.sort(latencies);
         int numLatencies = latencies.size();
         if (latencies.isEmpty()) {
-            return new long[]{0, 0, 0};
+            return new long[] { 0, 0, 0 };
         }
         int ninetyFifthPercentileIndex = (int) Math.ceil(0.95 * numLatencies);
         long ninetyFifthPercentile = latencies.get(ninetyFifthPercentileIndex - 1);
@@ -250,7 +257,7 @@ public class CassandraInit {
         } else {
             median = (latencies.get(middleIndex) + latencies.get(middleIndex - 1)) / 2;
         }
-        return new long[]{median, ninetyFifthPercentile, ninetyNinePercentile};
+        return new long[] { median, ninetyFifthPercentile, ninetyNinePercentile };
     }
 
     public static double roundTo2DP(double number) {
@@ -261,6 +268,7 @@ public class CassandraInit {
 
     /**
      * Generates the final state of the DB
+     * 
      * @param session Used to executed queries to get final state of DB
      */
     private static void generateState(Session session) {
