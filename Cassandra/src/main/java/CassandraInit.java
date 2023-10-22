@@ -286,6 +286,7 @@ public class CassandraInit {
             writeRow(writer, s_ytd.toString());
             writeRow(writer, String.valueOf(s_order_cnt));
             writeRow(writer, String.valueOf(s_remote_cnt));
+            writer.close();
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
