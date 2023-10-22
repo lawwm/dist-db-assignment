@@ -203,10 +203,10 @@ public class CassandraInit {
         // Pass to csv file
         String statisticLine = String.format(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
             transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
-        System.out.printf(statisticLine);
-        System.err.println(clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
+        String csvStatisticLine = clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
                 transThroughput + "," + averageLatency + "," + medianLatency + "," +
-                ninetyFifthPer + "," + ninetyNinePer);
+                ninetyFifthPer + "," + ninetyNinePer;
+        System.out.println(statisticLine);
 
         Path filePath = Paths.get("clients.csv");
         if (!Files.exists(filePath)) {
@@ -214,7 +214,7 @@ public class CassandraInit {
             Files.createFile(filePath);
         }
         // Append to the file (or write if it's just been created)
-        Files.write(filePath, statisticLine.getBytes(), StandardOpenOption.APPEND);
+        Files.write(filePath, csvStatisticLine.getBytes(), StandardOpenOption.APPEND);
     }
 
     /**
