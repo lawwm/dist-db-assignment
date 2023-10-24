@@ -59,17 +59,14 @@ public class NewOrderTxn implements Transaction {
         List<UDTValue> udtItems = new ArrayList<>();
         UserType itemType = session.getCluster().getMetadata().getKeyspace("CS4224H").getUserType("Item");
 
-        List<UDTValue> udtItem_Type_list = new ArrayList<>();
-        UserType Item_Type_type = session.getCluster().getMetadata().getKeyspace("CS4224H").getUserType("Item_Type");
         double totalAmount = 0;
         List<Integer> updated_s_quantity = new ArrayList<>();
 
         for (int i = 0; i < items.length; i++) {
-            int ol_i_id =  Integer.parseInt(items[i][0]);
+            int ol_i_id = Integer.parseInt(items[i][0]);
             int ol_supply_w_id = Integer.parseInt(items[i][1]);
-            int ol_quantity =  Integer.parseInt(items[i][2]);
+            int ol_quantity = Integer.parseInt(items[i][2]);
             BigDecimal ol_amount = itemsMetadata.getItemPrice(ol_i_id);
-            String i_name = itemsMetadata.getItemName(ol_i_id);
 
             totalAmount += (double) ol_quantity * ol_amount.doubleValue();
 
@@ -80,20 +77,11 @@ public class NewOrderTxn implements Transaction {
                     .setDecimal("OL_AMOUNT", ol_amount);
             udtItems.add(item);
 
-            UDTValue item_type = Item_Type_type.newValue()
-                    .setInt("OL_I_ID", ol_i_id)
-                    .setString("I_NAME", i_name)
-                    .setInt("OL_SUPPLY_W_ID", ol_supply_w_id)
-                    .setInt("OL_QUANTITY", ol_quantity)
-                    .setDecimal("OL_AMOUNT", ol_amount);
-            udtItem_Type_list.add(item_type);
-
-
             String getStockQty = String.format(
                     "SELECT * FROM CS4224H.stocks_by_warehouse WHERE S_W_ID = %s AND S_I_ID = %s;",
                     ol_supply_w_id, ol_i_id);
             Row row = session.execute(
-                            getStockQty)
+                    getStockQty)
                     .one();
             int s_qty = row.getDecimal("S_QUANTITY").intValue();
             int s_ytd = row.getDecimal("S_YTD").intValue();
@@ -111,13 +99,11 @@ public class NewOrderTxn implements Transaction {
             int update_order_cnt = s_order_cnt + 1;
             int update_remote_cnt = s_remote_cnt;
 
-            if (Integer.parseInt(this.warehouse_id) != ol_supply_w_id) {
-                update_order_cnt += 1;
-            }
-
-            String updateStock = String.format("UPDATE CS4224H.stocks_by_warehouse SET S_QUANTITY = %s, S_YTD = %s, S_ORDER_CNT = %s, S_REMOTE_CNT = %s " +
-                                    "WHERE S_W_ID = %s AND S_I_ID = %s;",
-                                    adj_qty, update_ytd, update_order_cnt, update_remote_cnt, ol_supply_w_id, ol_i_id);
+            String updateStock = String.format(
+                    "UPDATE CS4224H.stocks_by_warehouse SET S_QUANTITY = %s, S_YTD = %s, S_ORDER_CNT = %s, S_REMOTE_CNT = %s "
+                            +
+                            "WHERE S_W_ID = %s AND S_I_ID = %s;",
+                    adj_qty, update_ytd, update_order_cnt, update_remote_cnt, ol_supply_w_id, ol_i_id);
             session.execute(updateStock);
 
         }
@@ -133,13 +119,12 @@ public class NewOrderTxn implements Transaction {
                 Integer.parseInt(customer_id), order_id, currDate, null, null, udtItems);
         session.execute(bound);
 
-
         // Customer identifier (W ID, D ID, C ID), lastname C LAST, credit C CREDIT,
         String getCustomer = String.format(
                 "SELECT C_FIRST, C_MIDDLE, C_LAST, C_CREDIT, C_DISCOUNT FROM CS4224H.customers WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %s AND C_ID = %s;",
                 this.warehouse_id, this.district_id, this.customer_id);
         Row customer = session.execute(
-                        getCustomer)
+                getCustomer)
                 .one();
 
         System.out.printf("1. Customer identifier: %s %s %s, lastname %s, credit %s, discount %.2f\n",
@@ -151,13 +136,15 @@ public class NewOrderTxn implements Transaction {
         PreparedStatement ps_tx5 = session.prepare(
                 "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
         BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
-                order_id, currDate, customer.getString("C_FIRST"), customer.getString("C_MIDDLE"), customer.getString("C_LAST"), udtItem_Type_list);
+                order_id, currDate, customer.getString("C_FIRST"), customer.getString("C_MIDDLE"),
+                customer.getString("C_LAST"), udtItems);
         session.execute(bound_tx5);
 
         // 2. Warehouse tax rate W TAX, District tax rate D TAX
         Row district = session.execute(
-                        "SELECT W_TAX, D_TAX FROM CS4224H.district_by_warehouse WHERE W_ID = " + warehouse_id + " AND D_ID = "
-                                + district_id + ";")
+                "SELECT W_TAX, D_TAX FROM CS4224H.district_by_warehouse WHERE W_ID = " + warehouse_id
+                        + " AND D_ID = "
+                        + district_id + ";")
                 .one();
         System.out.printf("2. Warehouse tax rate %.2f, District tax rate %.2f\n",
                 district.getDecimal("W_TAX").doubleValue(),
@@ -167,7 +154,10 @@ public class NewOrderTxn implements Transaction {
         System.out.printf("3. Order number %s, entry date %s\n", order_id, sdf.format(currDate));
 
         // 4. Number of items NUM ITEMS, Total amount for order TOTAL AMOUNT
-        totalAmount = totalAmount * (1 + district.getDecimal("W_TAX").doubleValue() + district.getDecimal("D_TAX").doubleValue()) * customer.getDecimal("C_DISCOUNT").doubleValue();
+        totalAmount = totalAmount
+                * (1 + district.getDecimal("W_TAX").doubleValue()
+                        + district.getDecimal("D_TAX").doubleValue())
+                * customer.getDecimal("C_DISCOUNT").doubleValue();
         System.out.printf("4. Number of items %d, Total amount for order %.2f\n", items.length, totalAmount);
 
         // 5. For each ordered item ITEM NUMBER[i], i ∈ [1, NUM ITEMS]
@@ -175,7 +165,8 @@ public class NewOrderTxn implements Transaction {
             int itemId = Integer.parseInt(items[i][0]);
             System.out.printf(
                     "ITEM_NUMBER[i] : %d, I_NAME : %s, SUPPLIER_WAREHOUSE[i]: %s, QUANTITY[i]: %s, OL_AMOUNT: %.2f, S_QUANTITY: %d\n",
-                    itemId, itemsMetadata.getItemName(itemId), items[i][1], items[i][2], itemsMetadata.getItemPrice(itemId),
+                    itemId, itemsMetadata.getItemName(itemId), items[i][1], items[i][2],
+                    itemsMetadata.getItemPrice(itemId),
                     updated_s_quantity.get(i));
         }
     }

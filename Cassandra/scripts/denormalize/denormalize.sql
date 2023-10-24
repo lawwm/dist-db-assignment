@@ -17,11 +17,11 @@
 -- JOIN OrderTable O ON C.C_ID = O.O_C_ID AND C.C_D_ID = O.O_D_ID AND C.C_W_ID = O.O_W_ID) TO '/container/dir/customer_by_order.csv' WITH CSV;
 
 -- Transaction 7 denormalization
-COPY (SELECT C.C_W_ID, C.C_D_ID, C.C_ID, C.C_FIRST, C.C_MIDDLE, C.C_LAST, C.C_STREET_1, C.C_STREET_2, C.C_CITY, C.C_STATE,  C.C_ZIP, C.C_PHONE, C.C_SINCE, C.C_CREDIT, C.C_CREDIT_LIM, C.C_DISCOUNT, C.C_BALANCE, C.C_YTD_PAYMENT, C.C_PAYMENT_CNT, C.C_DELIVERY_CNT, C.C_DATA, W.W_NAME, D.D_NAME, 1
-FROM Customer C
-JOIN Warehouse W on C.C_W_ID = W.W_ID
-JOIN District D on C.C_D_ID = D.D_ID AND C.C_W_ID = D.D_W_ID) TO '/container/dir/customer_balance.csv' WITH CSV;
-GROUP BY C.C_W_ID, C.C_D_ID, C.C_ID, O.O_ID, O.O_ENTRY_D, O.O_CARRIER_ID, OL.OL_DELIVERY_D) TO 'testlearn.csv' WITH CSV;
+-- COPY (SELECT C.C_W_ID, C.C_D_ID, C.C_ID, C.C_FIRST, C.C_MIDDLE, C.C_LAST, C.C_STREET_1, C.C_STREET_2, C.C_CITY, C.C_STATE,  C.C_ZIP, C.C_PHONE, C.C_SINCE, C.C_CREDIT, C.C_CREDIT_LIM, C.C_DISCOUNT, C.C_BALANCE, C.C_YTD_PAYMENT, C.C_PAYMENT_CNT, C.C_DELIVERY_CNT, C.C_DATA, W.W_NAME, D.D_NAME, 1
+-- FROM Customer C
+-- JOIN Warehouse W on C.C_W_ID = W.W_ID
+-- JOIN District D on C.C_D_ID = D.D_ID AND C.C_W_ID = D.D_W_ID) TO '/container/dir/customer_balance.csv' WITH CSV;
+-- GROUP BY C.C_W_ID, C.C_D_ID, C.C_ID, O.O_ID, O.O_ENTRY_D, O.O_CARRIER_ID, OL.OL_DELIVERY_D) TO 'testlearn.csv' WITH CSV;
 
 -- -- district_by_warehouse denormalization
 -- COPY (select W.W_ID, D.D_ID, W.W_NAME, W.W_STREET_1, W.W_STREET_2, W.W_CITY, W.W_STATE, W.W_ZIP, W.W_TAX, D.D_NAME, D.D_STREET_1, D.D_STREET_2, 
@@ -29,17 +29,21 @@ GROUP BY C.C_W_ID, C.C_D_ID, C.C_ID, O.O_ID, O.O_ENTRY_D, O.O_CARRIER_ID, OL.OL_
 -- FROM District D
 -- JOIN Warehouse W on D.D_W_ID = W.W_ID) TO '/container/dir/district_by_warehouse.csv' WITH CSV;
 
+-- Transaction 5
+COPY (SELECT S_W_ID, S_I_ID, S_QUANTITY, S_YTD, S_ORDER_CNT, S_REMOTE_CNT
+FROM Stock S)
+TO '/container/dir/stocks_by_warehouse.csv' WITH CSV;
+
 -- Transaction 5 & 6 denormalization
--- (OL_I_ID, OL_SUPPLY_W_ID, I_NAME, OL_QUANTITY, OL_AMOUNT )
 COPY (SELECT O_W_ID, O_D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST,
     '[' || string_agg(
-        '{OL_I_ID: ''' || OL.OL_I_ID || ''', OL_SUPPLY_W_ID: ''' || OL.OL_SUPPLY_W_ID || ''', I_NAME: ''' || I.I_NAME || ''', 
-        OL_QUANTITY: ''' || OL.OL_QUANTITY || ''', OL_AMOUNT: ''' || OL.OL_AMOUNT || '}', 
+        '{ol_i_id: ''' || OL.OL_I_ID || ''', ol_supply_w_id: ''' || OL.OL_SUPPLY_W_ID || ''', ol_quantity: ''' || OL.OL_QUANTITY || ''', ol_amount: ' || OL.OL_AMOUNT || '}', 
         ','
     ) || ']'
 FROM OrderTable O
 Join Customer C ON C.C_W_ID = O.O_W_ID AND C.C_D_ID = O.O_D_ID AND  C.C_ID = O.O_C_ID
 JOIN OrderLine OL ON OL.OL_W_ID = O.O_W_ID AND OL.OL_D_ID = O.O_D_ID AND OL.OL_O_ID = O.O_ID
-JOIN ITEM I ON I.I_ID = OL.OL_I_ID
-GROUP BY O_W_ID, O_D_ID, O_ID, C_FIRST, C_MIDDLE, C_LAST)
+GROUP BY O_W_ID, O_D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST)
 TO '/container/dir/orders_by_district.csv' WITH CSV;
+
+
