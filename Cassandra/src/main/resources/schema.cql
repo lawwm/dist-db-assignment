@@ -61,6 +61,9 @@ CREATE TABLE stocks_by_warehouse (
 	S_W_ID int,
 	S_I_ID int,
 	S_QUANTITY decimal,
+  S_YTD decimal,
+  S_ORDER_CNT int,
+  S_REMOTE_CNT int,
 	PRIMARY KEY ((S_W_ID, S_I_ID))
 );
 
@@ -132,11 +135,11 @@ FROM '../scripts/data/orders_by_customer.csv' WITH DELIMITER=',' AND CHUNKSIZE =
 COPY CS4224H.customers(C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_DELIVERY_CNT, C_DATA, W_NAME, D_NAME, DUMMY_KEY) 
 FROM '../scripts/data/customer_balance.csv' WITH DELIMITER=',';
 
-COPY CS4224H.stocks_by_warehouse(S_W_ID, S_I_ID, S_QUANTITY)
+COPY CS4224H.stocks_by_warehouse(S_W_ID, S_I_ID, S_QUANTITY, S_YTD, S_ORDER_CNT, S_REMOTE_CNT)
 FROM '../scripts/data/stocks_by_warehouse.csv' WITH DELIMITER=',';
 
 COPY CS4224H.orders_by_district(D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS)
-FROM '../scripts/data/orders_by_district.csv' WITH DELIMITER=',' AND CHUNKSIZE = 100 AND NUMPROCESSES=4;
+FROM '../scripts/data/orders_by_district.csv' WITH DELIMITER=',' AND CHUNKSIZE = 50 AND NUMPROCESSES=4;
 
 COPY CS4224H.customer_item_denorm(C_W_ID, C_D_ID, C_ID, OL_I_ID)
 FROM '../scripts/data/customer_item_denorm.csv' WITH DELIMITER=',';
