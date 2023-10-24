@@ -109,14 +109,14 @@ public class NewOrderTxn implements Transaction {
         }
 
         PreparedStatement ps = session.prepare(
-                "INSERT INTO orders_by_customer (C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                "INSERT INTO orders_by_customer (C_W_ID, C_D_ID, C_ID, O_ID) VALUES (?, ?, ?, ?)");
 
         // need to get the OL_AMOUNT for item in a metadata class
         // need to get the O_ID from the order table
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date currDate = new Date();
         BoundStatement bound = ps.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
-                Integer.parseInt(customer_id), order_id, currDate, null, null, udtItems);
+                Integer.parseInt(customer_id), order_id);
         session.execute(bound);
 
         // Customer identifier (W ID, D ID, C ID), lastname C LAST, credit C CREDIT,
@@ -134,10 +134,9 @@ public class NewOrderTxn implements Transaction {
 
         // transaction 5
         PreparedStatement ps_tx5 = session.prepare(
-                "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
-                order_id, currDate, customer.getString("C_FIRST"), customer.getString("C_MIDDLE"),
-                customer.getString("C_LAST"), udtItems);
+                "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, C_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, C_FIRST, C_MIDDLE, C_LAST, ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id), order_id, this.customer_id, 
+                currDate, null, null, customer.getString("C_FIRST"), customer.getString("C_MIDDLE"), customer.getString("C_LAST"), udtItems);
         session.execute(bound_tx5);
 
         // 2. Warehouse tax rate W TAX, District tax rate D TAX
@@ -160,7 +159,7 @@ public class NewOrderTxn implements Transaction {
                 * customer.getDecimal("C_DISCOUNT").doubleValue();
         System.out.printf("4. Number of items %d, Total amount for order %.2f\n", items.length, totalAmount);
 
-        // 5. For each ordered item ITEM NUMBER[i], i ∈ [1, NUM ITEMS]
+        // 5. For each ordered item ITEM NUMBER[i], i in [1, NUM ITEMS]
         for (int i = 0; i < items.length; ++i) {
             int itemId = Integer.parseInt(items[i][0]);
             System.out.printf(

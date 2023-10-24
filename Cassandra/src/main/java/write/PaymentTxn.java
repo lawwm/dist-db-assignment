@@ -59,7 +59,7 @@ public class PaymentTxn implements Transaction {
                 session.execute(updateDistrictWarehouse);
                 session.execute(updateCustomer);
 
-                // Customer’s identifier (C W ID, C D ID, C ID), name (C FIRST, C MIDDLE, C
+                // Customer identifier (C W ID, C D ID, C ID), name (C FIRST, C MIDDLE, C
                 // LAST), address
                 // (C STREET 1, C STREET 2, C CITY, C STATE, C ZIP), C PHONE, C SINCE, C CREDIT,
                 // C CREDIT LIM, C DISCOUNT, C BALANCE
@@ -77,13 +77,13 @@ public class PaymentTxn implements Transaction {
                                 customer.getDecimal("C_CREDIT_LIM"), customer.getDecimal("C_DISCOUNT"),
                                 customer.getDecimal("C_BALANCE"));
 
-                // 2. Warehouse’s address (W STREET 1, W STREET 2, W CITY, W STATE, W ZIP)
+                // 2. Warehouse address (W STREET 1, W STREET 2, W CITY, W STATE, W ZIP)
                 System.out.printf("2. Warehouse's address: %s %s %s %s %s\n", district.getString("W_STREET_1"),
                                 district.getString("W_STREET_2"),
                                 district.getString("W_CITY"), district.getString("W_STATE"),
                                 district.getString("W_ZIP"));
 
-                // 3. District’s address (D STREET 1, D STREET 2, D CITY, D STATE, D ZIP)
+                // 3. District address (D STREET 1, D STREET 2, D CITY, D STATE, D ZIP)
                 System.out.printf("3. District's address: %s %s %s %s %s\n", district.getString("D_STREET_1"),
                                 district.getString("D_STREET_2"), district.getString("D_CITY"), 
                                 district.getString("D_STATE"), district.getString("D_ZIP"));

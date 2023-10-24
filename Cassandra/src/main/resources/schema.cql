@@ -45,13 +45,14 @@ CREATE TABLE orders_by_district (
   D_W_ID int, 
   D_ID int, 
   O_ID int, 
+  C_ID int,
   O_ENTRY_D TIMESTAMP, 
   O_CARRIER_ID INT, 
   OL_DELIVERY_D TIMESTAMP,   
   C_FIRST text, 
   C_MIDDLE text, 
   C_LAST text, 
-  POPULAR_ITEMS list<frozen<Item_Type>>, 
+  ITEMS list<frozen<Item>>, 
   PRIMARY KEY ((D_W_ID, D_ID), O_ID) 
 ) WITH CLUSTERING ORDER BY (O_ID DESC);
 
@@ -138,8 +139,12 @@ FROM '../scripts/data/customer_balance.csv' WITH DELIMITER=',';
 COPY CS4224H.stocks_by_warehouse(S_W_ID, S_I_ID, S_QUANTITY, S_YTD, S_ORDER_CNT, S_REMOTE_CNT)
 FROM '../scripts/data/stocks_by_warehouse.csv' WITH DELIMITER=',';
 
-COPY CS4224H.orders_by_district(D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS)
+COPY CS4224H.orders_by_district(D_W_ID, D_ID, O_ID, C_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, C_FIRST, C_MIDDLE, C_LAST, ITEMS)
 FROM '../scripts/data/orders_by_district.csv' WITH DELIMITER=',' AND CHUNKSIZE = 50 AND NUMPROCESSES=4;
 
 COPY CS4224H.customer_item_denorm(C_W_ID, C_D_ID, C_ID, OL_I_ID)
 FROM '../scripts/data/customer_item_denorm.csv' WITH DELIMITER=',';
+
+
+-- srun ../../../apache-cassandra-4.1.3/bin/cqlsh 192.168.48.189 -e "COPY CS4224H.orders_by_district(D_W_ID, D_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, C_FIRST, C_MIDDLE, C_LAST, ITEMS)
+-- FROM '../scripts/data/orders_by_district.csv' WITH DELIMITER=',' AND CHUNKSIZE = 50 AND NUMPROCESSES=4;" 

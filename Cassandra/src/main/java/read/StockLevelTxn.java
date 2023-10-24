@@ -14,7 +14,7 @@ import com.datastax.driver.core.UDTValue;
 
 public class StockLevelTxn implements Transaction {
 
-    private static final String GET_ORDER_BY_DISTRICT = "SELECT POPULAR_ITEMS FROM orders_by_district WHERE D_W_ID = %s AND D_ID = %s LIMIT %s";
+    private static final String GET_ORDER_BY_DISTRICT = "SELECT ITEMS FROM orders_by_district WHERE D_W_ID = %s AND D_ID = %s LIMIT %s";
     private static final String GET_STOCKS_BY_WAREHOUSE = "SELECT S_QUANTITY FROM stocks_by_warehouse WHERE S_W_ID = %s AND S_I_ID = %s";
 
     private final String warehouse_id;
@@ -41,7 +41,7 @@ public class StockLevelTxn implements Transaction {
         Set<Integer> items_below_stock_level = new HashSet<>();
 
         for (Row row : rs) {
-            List<UDTValue> itemList = row.getList("POPULAR_ITEMS", UDTValue.class);
+            List<UDTValue> itemList = row.getList("ITEMS", UDTValue.class);
 
             for (UDTValue udt : itemList) {
                 int ol_i_id = udt.getInt("OL_I_ID");
