@@ -174,4 +174,5 @@ cleanup() {
 # Make sure to always CLEANUP on exit
 trap cleanup EXIT
 
-# Run main functi
+# Run main function
+main

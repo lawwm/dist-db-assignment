@@ -38,6 +38,7 @@ public class RelatedCustomerTxn implements Transaction {
         PreparedStatement prepareCountItemQuery = session.prepare(COUNT_ITEMS_QUERY);
         ArrayList<Integer> refDistItemsList = new ArrayList<>(refDistItemsSet);
         BoundStatement countItemQuery = prepareCountItemQuery.bind(refDistItemsList);
+        countItemQuery.setReadTimeoutMillis(65000);
         ResultSet itemCountRes = session.execute(countItemQuery);
 
         System.out.printf("1. Customer identifier (%d %d %d)\n", w_id, d_id, c_id);
