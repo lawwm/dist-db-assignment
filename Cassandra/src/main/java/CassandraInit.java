@@ -22,6 +22,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.UDTValue;
+import com.datastax.driver.core.SimpleStatement;
 
 import table.Tables;
 import utils.ItemsMetadata;
@@ -271,6 +272,7 @@ public class CassandraInit {
      * 
      * @param session Used to executed queries to get final state of DB
      */
+
     private static void generateState(Session session) {
         String distWareQuery = "select sum(D_YTD), sum(D_NEXT_O_ID) from district_by_warehouse";
         String custQuery = "select sum(C_BALANCE), sum(C_YTD_PAYMENT), sum(C_PAYMENT_CNT), sum(C_DELIVERY_CNT) " +
@@ -279,10 +281,10 @@ public class CassandraInit {
         String orderLineQuery = "select ITEMS from orders_by_district";
         String stockQuery = "select sum(S_QUANTITY), sum(S_YTD), sum(S_ORDER_CNT), sum(S_REMOTE_CNT) " +
                 "from stocks_by_warehouse";
+        Row stockResultRow = session.execute(new SimpleStatement(stockQuery).setReadTimeoutMillis(65000)).one();        
         Row distWareResultRow = session.execute(distWareQuery).one();
         Row custResultRow = session.execute(custQuery).one();
         Row orderResultRow = session.execute(orderQuery).one();
-        Row stockResultRow = session.execute(stockQuery).one();
         ResultSet orderLineResults = session.execute(orderLineQuery);
         BigDecimal d_ytd = distWareResultRow.getDecimal(0); // Same as W_YTD
         int d_next_o_id = distWareResultRow.getInt(1);
@@ -294,13 +296,14 @@ public class CassandraInit {
         BigDecimal ol_amount = new BigDecimal(0);
         int ol_quantity = 0;
         int o_ol_cnt = 0;
+
         for (Row currRow : orderLineResults) {
             List<UDTValue> items = currRow.getList("ITEMS", UDTValue.class);
             o_ol_cnt += items.size();
             for (UDTValue currItem : items) {
                 BigDecimal currOlAmount = currItem.getDecimal("OL_AMOUNT");
                 int currOlQuantity = currItem.getInt("OL_QUANTITY");
-                ol_amount.add(currOlAmount);
+                ol_amount = ol_amount.add(currOlAmount);
                 ol_quantity += currOlQuantity;
             }
         }

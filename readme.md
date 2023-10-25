@@ -65,7 +65,9 @@ docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers(C_W_ID, C_D_ID, C
 srun java -jar ../build/libs/CassandraProcessor.jar 192.168.48.203 9042 Run ../../../project_files/xact_files/shorter.txt
 
 
-srun java -jar ../build/libs/CassandraProcessor.jar 192.168.48.203 9042 State
+srun java -jar ../build/libs/CassandraProcessor.jar 192.168.48.189 9042 State hello.csv
+
+srun ../../../apache-cassandra-4.1.3/bin/cqlsh 192.168.48.189 -e "select sum(S_QUANTITY), sum(S_YTD), sum(S_ORDER_CNT), sum(S_REMOTE_CNT) from cs4224h.stocks_by_warehouse;"
 ```
 
 

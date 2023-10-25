@@ -95,7 +95,7 @@ public class NewOrderTxn implements Transaction {
             updated_s_quantity.add(adj_qty);
             int update_ytd = s_ytd + ol_quantity;
             int update_order_cnt = s_order_cnt + 1;
-            int update_remote_cnt = s_remote_cnt;
+            int update_remote_cnt = s_remote_cnt + (Integer.parseInt(warehouse_id) != ol_supply_w_id ? 1 : 0);
 
             String updateStock = String.format(
                     "UPDATE CS4224H.stocks_by_warehouse SET S_QUANTITY = %s, S_YTD = %s, S_ORDER_CNT = %s, S_REMOTE_CNT = %s "
