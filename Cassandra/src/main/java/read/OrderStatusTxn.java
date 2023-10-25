@@ -40,7 +40,7 @@ public class OrderStatusTxn implements Transaction {
 			return;
 		}
 		int orderId = customerOrder.getInt("O_ID");
-		String getOrder = String.format("SELECT * FROM CS4224H.orders_by_district WHERE D_W_ID = %s AND D_ID = %d AND O_ID = %d;", warehouse_id, district_id, orderId);
+		String getOrder = String.format("SELECT * FROM CS4224H.orders_by_district WHERE D_W_ID = %s AND D_ID = %s AND O_ID = %d;", warehouse_id, district_id, orderId);
 		ResultSet orderResult = session.execute(getOrder);
 		Row order = orderResult.one();
 		if (order == null) {

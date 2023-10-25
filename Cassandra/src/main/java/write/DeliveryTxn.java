@@ -78,8 +78,7 @@ public class DeliveryTxn implements Transaction {
 
             String updateNextUndeliveredOrder = String.format(
                     "UPDATE CS4224H.district_by_warehouse SET D_LAST_UNDELIVERED_O_D = %d WHERE W_ID = %s AND D_ID = %d;",
-                    last_undelivered_order_id + 1, this.warehouse_id,
-                    district_id);
+                    last_undelivered_order_id + 1, this.warehouse_id, district_id);
 
             String updateCustomer = String.format(
                     "UPDATE CS4224H.customers SET C_BALANCE = %f, C_DELIVERY_CNT = %d WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %d AND C_ID = %d;",
