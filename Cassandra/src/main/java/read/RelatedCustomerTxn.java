@@ -17,7 +17,6 @@ public class RelatedCustomerTxn implements Transaction {
     private final String warehouse_id;
     private final String district_id;
     private final String customer_id;
-    private final String ALL_CUSTOMERS_QUERY = "Select c_w_id, c_d_id, c_id from customers;";
     private final String ALL_ITEMS_QUERY = "Select ol_i_id from customer_item_denorm where " +
             "c_w_id = ? and c_d_id = ? and c_id = ?;";
     private final String COUNT_ITEMS_QUERY = "Select c_w_id, c_d_id, c_id, COUNT(ol_i_id) as ol_i_id_count " +
@@ -36,10 +35,10 @@ public class RelatedCustomerTxn implements Transaction {
         int d_id = Integer.parseInt(this.district_id);
         int c_id = Integer.parseInt(this.customer_id);
         Set<Integer> refDistItemsSet = getDistItemSet(session, w_id, d_id, c_id);
-        ResultSet allCustomers = session.execute(ALL_CUSTOMERS_QUERY);
         PreparedStatement prepareCountItemQuery = session.prepare(COUNT_ITEMS_QUERY);
         ArrayList<Integer> refDistItemsList = new ArrayList<>(refDistItemsSet);
         BoundStatement countItemQuery = prepareCountItemQuery.bind(refDistItemsList);
+        countItemQuery.setReadTimeoutMillis(65000);
         ResultSet itemCountRes = session.execute(countItemQuery);
 
         System.out.printf("1. Customer identifier (%d %d %d)\n", w_id, d_id, c_id);

@@ -22,6 +22,7 @@ import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.UDTValue;
+import com.datastax.driver.core.SimpleStatement;
 
 import table.Tables;
 import utils.ItemsMetadata;
@@ -218,10 +219,10 @@ public class CassandraInit {
 
         // Pass to csv file
         String statisticLine = String.format(TRANSACTION_STATISTICS_TEMPLATE, numTransaction, totalElapsedTime,
-            transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
+                transThroughput, averageLatency, medianLatency, ninetyFifthPer, ninetyNinePer);
         String csvStatisticLine = clientNum + "," + numTransaction + "," + totalElapsedTime + "," +
                 transThroughput + "," + averageLatency + "," + medianLatency + "," +
-                ninetyFifthPer + "," + ninetyNinePer;
+                ninetyFifthPer + "," + ninetyNinePer + '\n';
         System.out.println(statisticLine);
 
         Path filePath = Paths.get("clients.csv");
@@ -268,20 +269,22 @@ public class CassandraInit {
 
     /**
      * Generates the final state of the DB
+     * 
      * @param session Used to executed queries to get final state of DB
      */
+
     private static void generateState(Session session) {
         String distWareQuery = "select sum(D_YTD), sum(D_NEXT_O_ID) from district_by_warehouse";
         String custQuery = "select sum(C_BALANCE), sum(C_YTD_PAYMENT), sum(C_PAYMENT_CNT), sum(C_DELIVERY_CNT) " +
                 "from customers";
-        String orderQuery = "select max(O_ID) from customers_by_order";
-        String orderLineQuery = "select ITEMS from orders_by_customer";
+        String orderQuery = "select max(O_ID) from orders_by_customer";
+        String orderLineQuery = "select ITEMS from orders_by_district";
         String stockQuery = "select sum(S_QUANTITY), sum(S_YTD), sum(S_ORDER_CNT), sum(S_REMOTE_CNT) " +
                 "from stocks_by_warehouse";
+        Row stockResultRow = session.execute(new SimpleStatement(stockQuery).setReadTimeoutMillis(65000)).one();        
         Row distWareResultRow = session.execute(distWareQuery).one();
         Row custResultRow = session.execute(custQuery).one();
         Row orderResultRow = session.execute(orderQuery).one();
-        Row stockResultRow = session.execute(stockQuery).one();
         ResultSet orderLineResults = session.execute(orderLineQuery);
         BigDecimal d_ytd = distWareResultRow.getDecimal(0); // Same as W_YTD
         int d_next_o_id = distWareResultRow.getInt(1);
@@ -292,12 +295,15 @@ public class CassandraInit {
         int o_id = orderResultRow.getInt(0);
         BigDecimal ol_amount = new BigDecimal(0);
         int ol_quantity = 0;
+        int o_ol_cnt = 0;
+
         for (Row currRow : orderLineResults) {
             List<UDTValue> items = currRow.getList("ITEMS", UDTValue.class);
+            o_ol_cnt += items.size();
             for (UDTValue currItem : items) {
                 BigDecimal currOlAmount = currItem.getDecimal("OL_AMOUNT");
                 int currOlQuantity = currItem.getInt("OL_QUANTITY");
-                ol_amount.add(currOlAmount);
+                ol_amount = ol_amount.add(currOlAmount);
                 ol_quantity += currOlQuantity;
             }
         }
@@ -307,20 +313,23 @@ public class CassandraInit {
         int s_remote_cnt = stockResultRow.getInt(3);
         try {
             BufferedWriter writer = new BufferedWriter(new FileWriter(DB_STATE_FILE));
-            writeRow(writer, d_ytd.toString());
-            writeRow(writer, d_ytd.toString());
-            writeRow(writer, String.valueOf(d_next_o_id));
-            writeRow(writer, c_balance.toString());
-            writeRow(writer, c_ytd_payment.toString());
-            writeRow(writer, String.valueOf(c_payment_cnt));
-            writeRow(writer, String.valueOf(c_delivery_cnt));
-            writeRow(writer, String.valueOf(o_id));
-            writeRow(writer, ol_amount.toString());
-            writeRow(writer, String.valueOf(ol_quantity));
-            writeRow(writer, s_quantity.toString());
-            writeRow(writer, s_ytd.toString());
-            writeRow(writer, String.valueOf(s_order_cnt));
-            writeRow(writer, String.valueOf(s_remote_cnt));
+            writeRow(writer, d_ytd.toString()); // SUM(W_YTD)
+            writeRow(writer, d_ytd.toString()); // SUM(D_YTD)
+            writeRow(writer, String.valueOf(d_next_o_id)); // SUM(D_NEXT_O_ID)
+            writeRow(writer, c_balance.toString()); // SUM(C_BALANCE)
+            writeRow(writer, c_ytd_payment.toString()); // SUM(C_YTD_PAYMENT)
+
+            writeRow(writer, String.valueOf(c_payment_cnt)); // SUM(C_PAYMENT_CNT)
+            writeRow(writer, String.valueOf(c_delivery_cnt)); // SUM(C_DELIVERY_CNT)
+            writeRow(writer, String.valueOf(o_id)); // MAX(O_ID)
+            writeRow(writer, String.valueOf(o_ol_cnt));
+            writeRow(writer, ol_amount.toString()); // SUM(OL_AMOUNT)
+
+            writeRow(writer, String.valueOf(ol_quantity));  // SUM(OL_QUANTITY)
+            writeRow(writer, s_quantity.toString());  // SUM(S_QUANTITY)
+            writeRow(writer, s_ytd.toString()); // SUM(S_YTD)
+            writeRow(writer, String.valueOf(s_order_cnt));  // SUM(S_ORDER_CNT)
+            writeRow(writer, String.valueOf(s_remote_cnt)); // SUM(S_REMOTE_CNT)
             writer.close();
         } catch (IOException e) {
             System.err.println(e.getMessage());

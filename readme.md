@@ -58,3 +58,40 @@ docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers_by_order (C_W_ID,
 
 docker exec -t ecstatic_ellis cqlsh -e "COPY CS4224H.customers(C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_DELIVERY_CNT, C_DATA, W_NAME, D_NAME, DUMMY_KEY) FROM 'container/dir/customer_balance.csv' WITH DELIMITER=',';"
 ```
+
+## Slurm
+
+```
+srun java -jar ../build/libs/CassandraProcessor.jar 192.168.48.203 9042 Run ../../../project_files/xact_files/shorter.txt
+
+
+srun java -jar ../build/libs/CassandraProcessor.jar 192.168.48.189 9042 State hello.csv
+
+srun ../../../apache-cassandra-4.1.3/bin/cqlsh 192.168.48.189 -e "select sum(S_QUANTITY), sum(S_YTD), sum(S_ORDER_CNT), sum(S_REMOTE_CNT) from cs4224h.stocks_by_warehouse;"
+```
+
+
+## Initial state
+
+```
+SUM(W_YTD) : 3000000.00
+
+SUM(D_YTD) : 3000000.00
+SUM(D_NEXT_O_ID) : 300100
+
+SUM(C_BALANCE) : -3000000.00
+SUM(C_YTD_PAYMENT) : 3000000
+SUM(C_PAYMENT_CNT) : 300000
+SUM(C_DELIVERY_CNT) : 0
+
+MAX(O_ID) : 3000
+SUM(O_OL_CNT) : 3749856
+
+sum(OL_AMOUNT) : 5882924710.96
+sum(OL_QUANTITY) : 18749280
+
+SUM(S_QUANTITY) : 55029630
+SUM(S_YTD) : 0.00
+SUM(S_ORDER_CNT) : 0 
+SUM(S_REMOTE_CNT) : 0
+```

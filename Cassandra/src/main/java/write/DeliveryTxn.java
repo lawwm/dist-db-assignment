@@ -29,7 +29,7 @@ public class DeliveryTxn implements Transaction {
                     this.warehouse_id, district_id);
             ResultSet result = session.execute(getNextOrderIdQuery);
             Row district = result.one();
-            if (district == null) {
+            if (district == null) { 
                 System.out.printf("No district %d for warehouse %d\n", district_id, this.warehouse_id);
                 continue;
             }
@@ -43,13 +43,13 @@ public class DeliveryTxn implements Transaction {
 
             // Get the order by order id
             String getOrderQuery = String.format(
-                    "SELECT * FROM CS4224H.customers_by_order WHERE C_W_ID = %s AND C_D_ID = %d AND O_ID = %d;",
+                    "SELECT * FROM CS4224H.orders_by_district WHERE D_W_ID = %s AND D_ID = %d AND O_ID = %d;",
                     this.warehouse_id, district_id, last_undelivered_order_id);
 
             result = session.execute(getOrderQuery);
-            Row order = result.one();
+            Row lastOrderOfCustomer = result.one();
 
-            if (order == null) {
+            if (lastOrderOfCustomer == null) {
                 System.out.printf("No customer for order %d from district %d and warehouse %s\n",
                         last_undelivered_order_id,
                         district_id,
@@ -57,22 +57,8 @@ public class DeliveryTxn implements Transaction {
                 continue;
             }
 
-            // get from orders_by_customer table
-            int customer_id = order.getInt("C_ID");
-            String getOrderByCustomer = String.format(
-                    "SELECT * FROM CS4224H.orders_by_customer WHERE C_W_ID = %s AND C_D_ID = %d AND C_ID = %d AND O_ID = %d;",
-                    this.warehouse_id, district_id, customer_id, last_undelivered_order_id);
-
-            result = session.execute(getOrderByCustomer);
-            Row lastOrderOfCustomer = result.one();
-            if (lastOrderOfCustomer == null) {
-                System.out.printf("No order for customer_id %d for district %d and warehouse %s\n", customer_id,
-                        district_id,
-                        this.warehouse_id);
-                continue;
-            }
-
             // Count the total amount
+            int customer_id = lastOrderOfCustomer.getInt("C_ID");
             List<UDTValue> items = lastOrderOfCustomer.getList("ITEMS", UDTValue.class);
             double amount = 0;
             for (UDTValue item : items) {
@@ -92,17 +78,15 @@ public class DeliveryTxn implements Transaction {
 
             String updateNextUndeliveredOrder = String.format(
                     "UPDATE CS4224H.district_by_warehouse SET D_LAST_UNDELIVERED_O_D = %d WHERE W_ID = %s AND D_ID = %d;",
-                    last_undelivered_order_id + 1, this.warehouse_id,
-                    district_id);
+                    last_undelivered_order_id + 1, this.warehouse_id, district_id);
 
             String updateCustomer = String.format(
                     "UPDATE CS4224H.customers SET C_BALANCE = %f, C_DELIVERY_CNT = %d WHERE DUMMY_KEY = 1 AND C_W_ID = %s AND C_D_ID = %d AND C_ID = %d;",
                     c_balance, c_delivery_cnt, this.warehouse_id, district_id, customer_id);
 
             String updateOrdersByCustomer = String.format(
-                    "UPDATE CS4224H.orders_by_customer SET O_CARRIER_ID = %s, OL_DELIVERY_D = '%s' WHERE C_W_ID = %s AND C_D_ID = %d AND C_ID = %d AND O_ID = %d;",
-                    this.carrier_id, formattedDate, this.warehouse_id, district_id, customer_id,
-                    last_undelivered_order_id);
+                    "UPDATE CS4224H.orders_by_district SET O_CARRIER_ID = %s, OL_DELIVERY_D = '%s' WHERE D_W_ID = %s AND D_ID = %d AND O_ID = %d;",
+                    this.carrier_id, formattedDate, this.warehouse_id, district_id, last_undelivered_order_id);
 
             session.execute(updateNextUndeliveredOrder);
             session.execute(updateCustomer);

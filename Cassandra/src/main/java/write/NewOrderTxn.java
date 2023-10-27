@@ -27,8 +27,6 @@ public class NewOrderTxn implements Transaction {
     private final String GET_NEXT_ORDER_ID = "select d_next_o_id from CS4224H.district_by_warehouse where w_id = %s and d_id = %s;";
     private final String UPDATE_NEXT_ORDER_ID = "UPDATE CS4224H.district_by_warehouse SET D_NEXT_O_ID = %s WHERE W_ID = %s AND D_ID = %s;";
 
-    private final String UPDATE_CUSTOMER_DENORM_QUERY = "Insert into customer_denorm " +
-            "(C_W_ID, C_D_ID, C_ID) values (?, ?, ?);";
     private final String UPDATE_CUSTOMER_ITEM_DENORM_QUERY = "Insert into customer_item_denorm " +
             "(C_W_ID, C_D_ID, C_ID, OL_I_ID) values (?, ?, ?, ?);";
 
@@ -97,7 +95,7 @@ public class NewOrderTxn implements Transaction {
             updated_s_quantity.add(adj_qty);
             int update_ytd = s_ytd + ol_quantity;
             int update_order_cnt = s_order_cnt + 1;
-            int update_remote_cnt = s_remote_cnt;
+            int update_remote_cnt = s_remote_cnt + (Integer.parseInt(warehouse_id) != ol_supply_w_id ? 1 : 0);
 
             String updateStock = String.format(
                     "UPDATE CS4224H.stocks_by_warehouse SET S_QUANTITY = %s, S_YTD = %s, S_ORDER_CNT = %s, S_REMOTE_CNT = %s "
@@ -109,14 +107,14 @@ public class NewOrderTxn implements Transaction {
         }
 
         PreparedStatement ps = session.prepare(
-                "INSERT INTO orders_by_customer (C_W_ID, C_D_ID, C_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                "INSERT INTO orders_by_customer (C_W_ID, C_D_ID, C_ID, O_ID) VALUES (?, ?, ?, ?)");
 
         // need to get the OL_AMOUNT for item in a metadata class
         // need to get the O_ID from the order table
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date currDate = new Date();
         BoundStatement bound = ps.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
-                Integer.parseInt(customer_id), order_id, currDate, null, null, udtItems);
+                Integer.parseInt(customer_id), order_id);
         session.execute(bound);
 
         // Customer identifier (W ID, D ID, C ID), lastname C LAST, credit C CREDIT,
@@ -134,10 +132,9 @@ public class NewOrderTxn implements Transaction {
 
         // transaction 5
         PreparedStatement ps_tx5 = session.prepare(
-                "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, O_ENTRY_D, C_FIRST, C_MIDDLE, C_LAST, POPULAR_ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id),
-                order_id, currDate, customer.getString("C_FIRST"), customer.getString("C_MIDDLE"),
-                customer.getString("C_LAST"), udtItems);
+                "INSERT INTO orders_by_district (D_W_ID, D_ID, O_ID, C_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, C_FIRST, C_MIDDLE, C_LAST, ITEMS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        BoundStatement bound_tx5 = ps_tx5.bind(Integer.parseInt(warehouse_id), Integer.parseInt(district_id), order_id, Integer.parseInt(this.customer_id), 
+                currDate, null, null, customer.getString("C_FIRST"), customer.getString("C_MIDDLE"), customer.getString("C_LAST"), udtItems);
         session.execute(bound_tx5);
 
         // 2. Warehouse tax rate W TAX, District tax rate D TAX
@@ -160,7 +157,7 @@ public class NewOrderTxn implements Transaction {
                 * customer.getDecimal("C_DISCOUNT").doubleValue();
         System.out.printf("4. Number of items %d, Total amount for order %.2f\n", items.length, totalAmount);
 
-        // 5. For each ordered item ITEM NUMBER[i], i ∈ [1, NUM ITEMS]
+        // 5. For each ordered item ITEM NUMBER[i], i in [1, NUM ITEMS]
         for (int i = 0; i < items.length; ++i) {
             int itemId = Integer.parseInt(items[i][0]);
             System.out.printf(
@@ -175,9 +172,6 @@ public class NewOrderTxn implements Transaction {
         int w_id = Integer.parseInt(this.warehouse_id);
         int d_id = Integer.parseInt(this.district_id);
         int c_id = Integer.parseInt(this.customer_id);
-        PreparedStatement prepareCustDenormInsertQuery = session.prepare(UPDATE_CUSTOMER_DENORM_QUERY);
-        BoundStatement custDenormInsertQuery = prepareCustDenormInsertQuery.bind(w_id, d_id, c_id);
-        session.execute(custDenormInsertQuery);
         PreparedStatement prepareCustItemDenormInsertQuery = session.prepare(UPDATE_CUSTOMER_ITEM_DENORM_QUERY);
         for (String[] currItem : items) {
             int ol_i_id = Integer.parseInt(currItem[0]);

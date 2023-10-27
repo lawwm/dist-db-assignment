@@ -7,6 +7,7 @@ ROOT_DIR="../../.." # Root directory
 DIR="/temp/cs4224h" # Use the temp directory for storing data
 CONF_DIR=$ROOT_DIR/apache-cassandra-4.1.3 # Path to apache-cassandra
 SENTINEL_FILE="./sentinel.txt"
+SENTINEL_FILE_2="./sentinel2.txt"
 DATA_DIR="../scripts/data"
 JAR_DIR="../build/libs"
 CQL_SCHEMA_DIR="../src/main/resources/schema.cql" # Path of CQL file
@@ -14,6 +15,7 @@ NODE_IP_ADDR="" # Ip address of current node
 TRANSACTION_DIR=$ROOT_DIR/project_files/xact_files # Xact files
 MAX_FILE=19
 CLIENT_CSV="./clients.csv"
+SLEEP_TIME=20
 
 configure_ip() {
   IP_1=$(hostname -I | awk '{print $1}')
@@ -26,7 +28,7 @@ configure_ip() {
 }
 
 populate_data() {
-  sleep 10
+  sleep $SLEEP_TIME
   echo "populate data"
   configure_ip
   echo "RUNNING" $NODE_IP_ADDR $CQL_SCHEMA_DIR
@@ -38,7 +40,11 @@ main() {
   # Remove temp directory
   java --version
   rm -rf $DIR
+  rm ./clients.csv
+  rm ./throughput.csv
+  rm ./dbstate.csv
   rm $SENTINEL_FILE
+  rm $SENTINEL_FILE_2
   echo "Before temp cs4224h folder created:"
   ls /temp
 
@@ -80,7 +86,7 @@ main() {
       if [[ $count -eq 5 ]]; then
           break
       fi
-      sleep 10  # Optional: sleep for 5 seconds between checks
+      sleep $SLEEP_TIME  # Optional: sleep for 5 seconds between checks
   done
 
   # STAGE 2: Run Data
@@ -90,24 +96,24 @@ main() {
     # Populate data
     echo "Populating data"
     populate_data
-    x=1
-    while [ $x -le 10 ]
-    do
-      sleep 10
-      echo "RUN DATA FILE"
-      $CONF_DIR/bin/nodetool status
-      x=$(( $x + 1 ))
-    done  
+
+    sleep $SLEEP_TIME
+    $CONF_DIR/bin/nodetool status
+
     # Create sentinel file so other jobs exit while loop
     touch $SENTINEL_FILE
   else
     # commands to run otherwise
     while [ ! -f $SENTINEL_FILE ]; do
-      sleep 1
+      sleep $SLEEP_TIME
       echo "Waiting for data to be populated..."
     done 
   fi
 
+  # while true; do
+  #   echo "sleeping..."
+  #   sleep 60
+  # done
 
   #Stage 2: Run 4 clients
   configure_ip
@@ -133,11 +139,29 @@ main() {
   while [ "$line_count" -ne 20 ]; do
       # Your code here...
       # Sleep for a short period before checking again (optional but recommended to avoid overloading the system)
-      sleep 10
+      sleep $SLEEP_TIME
       # Update the line count for the next iteration
       line_count=$(wc -l < $CLIENT_CSV)
   done
 
+
+  # Stage 3
+  if [ $SLURM_PROCID -eq 0 ]; then  # commands to run if the slurm job is task #0
+    # Create throughput.csv file
+    python ../scripts/tools/throughput.py
+
+    # Generate dbstate.csv
+    java -jar $JAR_DIR/CassandraProcessor.jar $NODE_IP_ADDR 9042 State dbstate.csv
+    
+    # Create sentinel file so other jobs exit while loop
+    touch $SENTINEL_FILE_2
+  else
+    # commands to run otherwise
+    while [ ! -f $SENTINEL_FILE_2 ]; do
+      sleep $SLEEP_TIME
+      echo "Waiting for throughput.csv and dbstate.csv to be created..."
+    done 
+  fi
 }
 
 cleanup() {

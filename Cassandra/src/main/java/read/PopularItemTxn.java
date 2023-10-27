@@ -45,7 +45,7 @@ public class PopularItemTxn implements Transaction {
             String c_first = row.getString("C_FIRST");
             String c_middle = row.getString("C_MIDDLE");
             String c_last = row.getString("C_LAST");
-            List<UDTValue> itemList = row.getList("POPULAR_ITEMS", UDTValue.class);
+            List<UDTValue> itemList = row.getList("ITEMS", UDTValue.class);
 
             // Keep track of total qty per item in current order
             HashMap<String, Integer> hm = new HashMap<>();
