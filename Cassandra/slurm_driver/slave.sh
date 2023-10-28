@@ -33,6 +33,8 @@ populate_data() {
   configure_ip
   echo "RUNNING" $NODE_IP_ADDR $CQL_SCHEMA_DIR
   $CONF_DIR/bin/cqlsh $NODE_IP_ADDR -f $CQL_SCHEMA_DIR
+  dsbulk load -k cs4224h -t orders_by_district -url ../scripts/data/orders_by_district.csv -h $concatenated_ips -header false -m '0 = d_w_id, 1 = d_id, 2 = o_id, 3 = c_id, 4 = o_entry_d, 5 = o_carrier_id, 6 = ol_delivery_d, 7 = c_first, 8 = c_middle, 9 = c_last, 10 = items'
+  dsbulk load -k cs4224h -t customer_item_denorm -url ../scripts/data/customer_item_denorm.csv -h $concatenated_ips -header false -m '0 = c_w_id, 1 = c_d_id, 2 = c_id, 3 = ol_i_id'
 }
 
 ## STAGE 1: Set up all cassandra nodes
