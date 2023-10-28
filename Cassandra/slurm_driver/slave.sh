@@ -33,6 +33,8 @@ populate_data() {
   configure_ip
   echo "RUNNING" $NODE_IP_ADDR $CQL_SCHEMA_DIR
   $CONF_DIR/bin/cqlsh $NODE_IP_ADDR -f $CQL_SCHEMA_DIR
+  dsbulk load -k cs4224h -t district_by_warehouse -url ../scripts/data/district_by_warehouse.csv -h $concatenated_ips -header false -m '0 = w_id, 1 = d_id, 2 = w_name, 3 = w_street_1, 4 = w_street_2, 5 = w_city, 6 = w_state, 7 = w_zip, 8 = w_tax, 9 = d_name, 10 = d_street_1, 11 = d_street_2, 12 = d_city, 13 = d_state, 14 = d_zip, 15 = d_tax, 16 = d_ytd, 17 = d_next_o_id, 18 = d_last_undelivered_o_d'
+  dsbulk load -k cs4224h -t customers -url ../scripts/data/customer_balance.csv -h $concatenated_ips -header false -m '0 = c_w_id, 1 = c_d_id, 2 = c_id, 3 = c_first, 4 = c_middle, 5 = c_last, 6 = c_street_1, 7 = c_street_2, 8 = c_city, 9 = c_state, 10 = c_zip, 11 = c_phone, 12 = c_since, 13 = c_credit, 14 = c_credit_lim, 15 = c_discount, 16 = c_balance, 17 = c_ytd_payment, 18 = c_payment_cnt, 19 = c_delivery_cnt, 20 = c_data, 21 = w_name, 22 = d_name, 23 = dummy_key'
   dsbulk load -k cs4224h -t orders_by_district -url ../scripts/data/orders_by_district.csv -h $concatenated_ips -header false -m '0 = d_w_id, 1 = d_id, 2 = o_id, 3 = c_id, 4 = o_entry_d, 5 = o_carrier_id, 6 = ol_delivery_d, 7 = c_first, 8 = c_middle, 9 = c_last, 10 = items'
   dsbulk load -k cs4224h -t customer_item_denorm -url ../scripts/data/customer_item_denorm.csv -h $concatenated_ips -header false -m '0 = c_w_id, 1 = c_d_id, 2 = c_id, 3 = ol_i_id'
 }
