@@ -126,25 +126,11 @@ CREATE TABLE customer_item_denorm (
 
 
 -- Populate data
-COPY CS4224H.district_by_warehouse (W_ID, D_ID, W_NAME, W_STREET_1, W_STREET_2, W_CITY, W_STATE, W_ZIP, W_TAX, D_NAME, D_STREET_1, D_STREET_2, D_CITY, D_STATE, D_ZIP, D_TAX, D_YTD, D_NEXT_O_ID, D_LAST_UNDELIVERED_O_D) 
-FROM '../scripts/data/district_by_warehouse.csv' WITH DELIMITER=',';
-
-COPY CS4224H.orders_by_customer(C_W_ID, C_D_ID, C_ID, O_ID) 
+COPY CS4224H.orders_by_customer(C_W_ID, C_D_ID, C_ID, O_ID)
 FROM '../scripts/data/orders_by_customer.csv' WITH DELIMITER=',' AND CHUNKSIZE = 100 AND NUMPROCESSES=4;
-
-
-COPY CS4224H.customers(C_W_ID, C_D_ID, C_ID, C_FIRST, C_MIDDLE, C_LAST, C_STREET_1, C_STREET_2, C_CITY, C_STATE, C_ZIP, C_PHONE, C_SINCE, C_CREDIT, C_CREDIT_LIM, C_DISCOUNT, C_BALANCE, C_YTD_PAYMENT, C_PAYMENT_CNT, C_DELIVERY_CNT, C_DATA, W_NAME, D_NAME, DUMMY_KEY) 
-FROM '../scripts/data/customer_balance.csv' WITH DELIMITER=',';
 
 COPY CS4224H.stocks_by_warehouse(S_W_ID, S_I_ID, S_QUANTITY, S_YTD, S_ORDER_CNT, S_REMOTE_CNT)
 FROM '../scripts/data/stocks_by_warehouse.csv' WITH DELIMITER=',';
-
-COPY CS4224H.orders_by_district(D_W_ID, D_ID, O_ID, C_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, C_FIRST, C_MIDDLE, C_LAST, ITEMS)
-FROM '../scripts/data/orders_by_district.csv' WITH DELIMITER=',' AND CHUNKSIZE = 50 AND NUMPROCESSES=4;
-
-COPY CS4224H.customer_item_denorm(C_W_ID, C_D_ID, C_ID, OL_I_ID)
-FROM '../scripts/data/customer_item_denorm.csv' WITH DELIMITER=',';
-
 
 -- srun ../../../apache-cassandra-4.1.3/bin/cqlsh 192.168.48.189 -e "COPY CS4224H.orders_by_district(D_W_ID, D_ID, O_ID, O_ENTRY_D, O_CARRIER_ID, OL_DELIVERY_D, C_FIRST, C_MIDDLE, C_LAST, ITEMS)
 -- FROM '../scripts/data/orders_by_district.csv' WITH DELIMITER=',' AND CHUNKSIZE = 50 AND NUMPROCESSES=4;" 
