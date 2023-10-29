@@ -154,7 +154,7 @@ public class NewOrderTxn implements Transaction {
         totalAmount = totalAmount
                 * (1 + district.getDecimal("W_TAX").doubleValue()
                         + district.getDecimal("D_TAX").doubleValue())
-                * customer.getDecimal("C_DISCOUNT").doubleValue();
+                * (1 - customer.getDecimal("C_DISCOUNT").doubleValue());
         System.out.printf("4. Number of items %d, Total amount for order %.2f\n", items.length, totalAmount);
 
         // 5. For each ordered item ITEM NUMBER[i], i in [1, NUM ITEMS]
