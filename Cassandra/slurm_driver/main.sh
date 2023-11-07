@@ -5,5 +5,6 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --partition=long
 #SBATCH --exclude=xcng0,xcng1
+#SBATCH --exclusive
 
 srun  --output=task_output_%j_%t.out bash ./slave.sh
