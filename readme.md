@@ -19,6 +19,25 @@ cd ../Cassandra/slurm_driver
 sbatch main.sh
 ```
 
+4. The log files are found in the slurm_driver folder. 
+```
+task_output_121378_0.out
+task_output_121378_1.out
+task_output_121378_2.out
+task_output_121378_3.out
+task_output_121378_4.out
+```
+
+Sometimes, the server initialisation fails due to jvm initialisation error.
+Check the logs for such occurences.
+If it happens, just cancel the run and try again.
+```
+scancel <slurm_id>
+sbatch main.sh
+```
+
+5. You can find the `clients.csv`, `dbstate.csv` and `throughput.csv` file in the slurm_driver folder, after the run completes.
+
 # Miscellaneous
 ## Compilation
 
