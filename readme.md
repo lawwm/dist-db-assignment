@@ -1,3 +1,25 @@
+# Instructions for running the project
+
+1. Set up the Cassandra Database
+
+```
+cd setup
+sh ./install-cassandra.sh
+```
+
+2. Enter the directory for the slave file
+
+```
+cd ../Cassandra/slurm_driver
+```
+
+3. Run the slurm script
+
+```
+sbatch main.sh
+```
+
+# Miscellaneous
 ## Compilation
 
 How to compile and run the project
