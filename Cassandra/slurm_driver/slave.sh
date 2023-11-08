@@ -110,6 +110,7 @@ main() {
     ip_3=${IPs[2]}
     ip_4=${IPs[3]}
     ip_5=${IPs[4]}
+    concatenated_ips="$ip_1,$ip_2,$ip_3,$ip_4,$ip_5"
 
     # Copy configuration over to the temp directory
     mkdir -p $DIR
