@@ -162,7 +162,7 @@ public class CassandraInit {
     private static void createKeyspace(Session session) {
         String nameSpaceQuery = "CREATE KEYSPACE IF NOT EXISTS " + KEYSPACE_REF +
                 " WITH replication = {" +
-                "'class': 'NetworkTopologyStrategy'," +
+                "'class': 'SimpleStrategy'," +
                 "'replication_factor': 3};";
         session.execute(nameSpaceQuery);
         System.out.println("Created Keyspace: " + KEYSPACE_REF);
