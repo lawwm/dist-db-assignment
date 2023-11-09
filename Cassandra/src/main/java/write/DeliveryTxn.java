@@ -29,7 +29,7 @@ public class DeliveryTxn implements Transaction {
                     this.warehouse_id, district_id);
             ResultSet result = session.execute(getNextOrderIdQuery);
             Row district = result.one();
-            if (district == null) { 
+            if (district == null) {
                 System.out.printf("No district %d for warehouse %d\n", district_id, this.warehouse_id);
                 continue;
             }
@@ -62,7 +62,7 @@ public class DeliveryTxn implements Transaction {
             List<UDTValue> items = lastOrderOfCustomer.getList("ITEMS", UDTValue.class);
             double amount = 0;
             for (UDTValue item : items) {
-                amount += item.getDecimal("OL_AMOUNT").doubleValue();
+                amount += (item.getDecimal("OL_AMOUNT").doubleValue() * item.getDecimal("OL_QUANTITY").doubleValue());
             }
 
             String getCustomer = String.format(
